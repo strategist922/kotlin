@@ -9,8 +9,8 @@ open public class Exception(message: String? = null) : Throwable() {}
 library
 open public class RuntimeException(message: String? = null) : Exception(message) {}
 
-library("splitString")
-public fun String.split(regex : String) : Array<String> = js.noImpl
+native
+public fun String.split(regex: String): Array<String> = js.noImpl
 
 library
 public class IllegalArgumentException(message: String? = null) : Exception() {}
