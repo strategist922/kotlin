@@ -51,7 +51,7 @@ public enum PrimitiveBinaryOperationFIF implements FunctionIntrinsicFactory {
             assert arguments.size() == 1 : "RangeTo must have one argument.";
             assert rangeStart != null;
             JsExpression rangeEnd = arguments.get(0);
-            JsNameRef expr = AstUtil.newQualifiedNameRef("Kotlin.NumberRange");
+            JsNameRef expr = new JsNameRef("NumberRange", "Kotlin");
             HasArguments numberRangeConstructorInvocation = context.isEcma5() ? new JsInvocation(expr) : new JsNew(expr);
             //TODO: add tests and correct expression for reversed ranges.
             setArguments(numberRangeConstructorInvocation, rangeStart, rangeEnd);
