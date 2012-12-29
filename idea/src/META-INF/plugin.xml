@@ -207,6 +207,8 @@
     <codeInsight.implementMethod language="jet" implementationClass="org.jetbrains.jet.plugin.codeInsight.ImplementMethodsHandler"/>
     <codeInsight.overrideMethod language="jet" implementationClass="org.jetbrains.jet.plugin.codeInsight.OverrideMethodsHandler"/>
 
+    <facetType implementation="org.jetbrains.jet.plugin.facet.JetFacetType"/>
+
     <java.elementFinder implementation="org.jetbrains.jet.asJava.JavaElementFinder"/>
     <java.shortNamesCache implementation="org.jetbrains.jet.plugin.caches.JetShortNamesCache"/>
 
