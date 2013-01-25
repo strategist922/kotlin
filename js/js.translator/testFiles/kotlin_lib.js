@@ -116,9 +116,6 @@ var kotlin = {set:function (receiver, key, value) {
         next: function () {
             return this.array[this.index++];
         },
-        get_hasNext: function () {
-            return this.index < this.size;
-        },
         hasNext: function () {
             return this.index < this.size;
         }
@@ -132,9 +129,6 @@ var kotlin = {set:function (receiver, key, value) {
         },
         next: function () {
             return this.list.get(this.index++);
-        },
-        get_hasNext: function () {
-            return this.index < this.size;
         }
     });
 
@@ -372,12 +366,18 @@ var kotlin = {set:function (receiver, key, value) {
             this.$i = tmp$0;
         },
         next: function () {
-            var value = this.$i;
-            this.set_i(this.$i + this.$increment)
-            return value;
+            this.set_count(this.get_count() - 1);
+            if (this.get_reversed()) {
+                this.set_i(this.get_i() - 1);
+                return this.get_i() + 1;
+            }
+            else {
+                this.set_i(this.get_i() + 1);
+                return this.get_i() - 1;
+            }
         },
-        get_hasNext: function () {
-            return this.$increment > 0 ? this.$next <= this.$end : this.$next >= this.$end;
+        hasNext: function () {
+            return this.get_count() > 0;
         }
     });
 
@@ -446,7 +446,7 @@ var kotlin = {set:function (receiver, key, value) {
             throw Kotlin.Exception();
         }
         var max = it.next();
-        while (it.get_hasNext()) {
+        while (it.hasNext()) {
             var el = it.next();
             if (comp.compare(max, el) < 0) {
                 max = el;
