@@ -17,19 +17,75 @@
 package org.jetbrains.jet.plugin.facet.ui;
 
 import com.intellij.facet.ui.FacetEditorTab;
+import com.intellij.facet.ui.FacetEditorValidator;
+import com.intellij.facet.ui.FacetValidatorsManager;
+import com.intellij.facet.ui.ValidationResult;
+import com.intellij.openapi.options.ConfigurationException;
+import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import org.jetbrains.annotations.Nls;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.jet.plugin.JetLanguage;
+import org.jetbrains.jet.plugin.facet.JetFacetSettings;
 
 import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 public class JetFacetEditorTab extends FacetEditorTab {
+    private final JetFacetSettings facetSettings;
     private JPanel mainPanel;
+    private JRadioButton javaModuleRadioButton;
+    private JRadioButton javaScriptModuleRadioButton;
+    private TextFieldWithBrowseButton runtimeLibraryField;
+    private TextFieldWithBrowseButton javascriptLibrariesField;
+
+    public JetFacetEditorTab(JetFacetSettings facetSettings, FacetValidatorsManager validatorsManager) {
+        this.facetSettings = facetSettings;
+
+        validatorsManager.registerValidator(new FacetEditorValidator() {
+            @Override
+            public ValidationResult check() {
+                return JetFacetEditorTab.check();
+            }
+        }, javaModuleRadioButton, javaScriptModuleRadioButton, runtimeLibraryField, javascriptLibrariesField);
+
+        reset();
+
+        javaModuleRadioButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(@NotNull ActionEvent e) {
+                changeModuleTypeControls(javaModuleRadioButton.isSelected());
+            }
+        });
+        javaScriptModuleRadioButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(@NotNull ActionEvent e) {
+                changeModuleTypeControls(javaModuleRadioButton.isSelected());
+            }
+        });
+    }
+
+    private static ValidationResult check() {
+        // TODO: add checks
+        return ValidationResult.OK;
+    }
+
+    private void changeModuleTypeControls(boolean javaModule) {
+        runtimeLibraryField.setEnabled(javaModule);
+        javascriptLibrariesField.setEnabled(!javaModule);
+    }
+
+    private void update(JetFacetSettings settings) {
+        settings.setJavaModule(javaModuleRadioButton.isSelected());
+        settings.setRuntimeLibraryName(runtimeLibraryField.getText());
+        settings.setJsLibraryFolder(javaScriptModuleRadioButton.getText());
+    }
 
     @Nls
     @Override
     public String getDisplayName() {
-        // TODO: Move to external settings
-        return "Kotlin";
+        return JetLanguage.NAME;
     }
 
     @Nullable
@@ -39,12 +95,27 @@ public class JetFacetEditorTab extends FacetEditorTab {
     }
 
     @Override
+    public void apply() throws ConfigurationException {
+        update(facetSettings);
+    }
+
+    @Override
     public boolean isModified() {
-        return false;
+        JetFacetSettings currentSettings = new JetFacetSettings();
+        update(currentSettings);
+
+        return !facetSettings.equals(currentSettings);
     }
 
     @Override
     public void reset() {
+        javaModuleRadioButton.setSelected(facetSettings.isJavaModule());
+        javaScriptModuleRadioButton.setSelected(!facetSettings.isJavaModule());
+
+        runtimeLibraryField.setText(facetSettings.getRuntimeLibraryName());
+        javascriptLibrariesField.setText(facetSettings.getJsLibraryFolder());
+
+        changeModuleTypeControls(facetSettings.isJavaModule());
     }
 
     @Override

@@ -20,22 +20,45 @@ import com.intellij.facet.FacetConfiguration;
 import com.intellij.facet.ui.FacetEditorContext;
 import com.intellij.facet.ui.FacetEditorTab;
 import com.intellij.facet.ui.FacetValidatorsManager;
+import com.intellij.openapi.components.PersistentStateComponent;
+import com.intellij.openapi.components.State;
+import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.util.InvalidDataException;
 import com.intellij.openapi.util.WriteExternalException;
+import com.intellij.util.xmlb.XmlSerializerUtil;
 import org.jdom.Element;
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.jet.plugin.facet.ui.JetFacetEditorTab;
 
-public class JetFacetConfiguration implements FacetConfiguration {
+@State(name = JetFacetConfiguration.COMPONENT_NAME, storages = {@Storage(file = "$MODULE_FILE$")})
+public class JetFacetConfiguration implements FacetConfiguration, PersistentStateComponent<JetFacetSettings> {
+    public static final String COMPONENT_NAME = "JetFacetConfiguration";
+
+    private final JetFacetSettings settingsData = new JetFacetSettings();
+
     @Override
     public FacetEditorTab[] createEditorTabs(FacetEditorContext editorContext, FacetValidatorsManager validatorsManager) {
-        return new FacetEditorTab[] { new JetFacetEditorTab() };
+        return new FacetEditorTab[] { new JetFacetEditorTab(settingsData, validatorsManager) };
     }
 
+    @Deprecated
     @Override
     public void readExternal(Element element) throws InvalidDataException {
     }
 
+    @Deprecated
     @Override
     public void writeExternal(Element element) throws WriteExternalException {
+    }
+
+    @Nullable
+    @Override
+    public JetFacetSettings getState() {
+        return settingsData;
+    }
+
+    @Override
+    public void loadState(JetFacetSettings state) {
+        XmlSerializerUtil.copyBean(state, settingsData);
     }
 }
