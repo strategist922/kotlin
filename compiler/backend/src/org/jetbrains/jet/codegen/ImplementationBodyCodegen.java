@@ -24,6 +24,7 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.asm4.*;
 import org.jetbrains.asm4.commons.InstructionAdapter;
 import org.jetbrains.asm4.commons.Method;
+import org.jetbrains.jet.JetNodeTypes;
 import org.jetbrains.jet.codegen.binding.CalculatedClosure;
 import org.jetbrains.jet.codegen.binding.CodegenBinding;
 import org.jetbrains.jet.codegen.binding.MutableClosure;
@@ -39,12 +40,14 @@ import org.jetbrains.jet.codegen.state.JetTypeMapperMode;
 import org.jetbrains.jet.lang.descriptors.*;
 import org.jetbrains.jet.lang.psi.*;
 import org.jetbrains.jet.lang.resolve.BindingContext;
+import org.jetbrains.jet.lang.resolve.BindingContextUtils;
 import org.jetbrains.jet.lang.resolve.DescriptorUtils;
 import org.jetbrains.jet.lang.resolve.OverridingUtil;
 import org.jetbrains.jet.lang.resolve.calls.model.ResolvedCall;
 import org.jetbrains.jet.lang.resolve.constants.CompileTimeConstant;
 import org.jetbrains.jet.lang.resolve.java.*;
 import org.jetbrains.jet.lang.resolve.java.kt.DescriptorKindUtils;
+import org.jetbrains.jet.lang.resolve.name.FqName;
 import org.jetbrains.jet.lang.resolve.name.Name;
 import org.jetbrains.jet.lang.types.JetType;
 import org.jetbrains.jet.lang.types.lang.KotlinBuiltIns;
@@ -184,9 +187,40 @@ public class ImplementationBodyCodegen extends ClassBodyCodegen {
     }
 
     private void writeOuterClass() {
-        ClassDescriptor container = getContainingClassDescriptor(descriptor);
-        if (container != null) {
-            v.visitOuterClass(typeMapper.mapType(container.getDefaultType(), JetTypeMapperMode.IMPL).getInternalName(), null, null);
+        //JVMS7: A class must have an EnclosingMethod attribute if and only if it is a local class or an anonymous class.
+        DeclarationDescriptor parentDescriptor = descriptor.getContainingDeclaration();
+
+        boolean isObjectLiteral = JetNodeTypes.OBJECT_LITERAL.equals(
+                BindingContextUtils.descriptorToDeclaration(bindingContext, descriptor).getParent().getNode().getElementType());
+
+        boolean isLocalOrAnonymousClass = isObjectLiteral || !(parentDescriptor instanceof NamespaceDescriptor || parentDescriptor instanceof ClassDescriptor);
+        if (isLocalOrAnonymousClass) {
+            ClassDescriptor container = DescriptorUtils.getParentOfType(descriptor, ClassDescriptor.class);
+            String outerClassName;
+            if (container != null) {
+                outerClassName = typeMapper.mapType(container.getDefaultType(), JetTypeMapperMode.IMPL).getInternalName();
+            } else {
+                NamespaceDescriptor namespaceDescriptor = DescriptorUtils.getParentOfType(descriptor, NamespaceDescriptor.class);
+                assert namespaceDescriptor != null : "Namespace descriptor should be present: " + descriptor.getName();
+                FqName namespaceQN = namespaceDescriptor.getQualifiedName();
+                boolean isMultiFile = CodegenBinding.isMultiFileNamespace(state.getBindingContext(), namespaceQN);
+                outerClassName = isMultiFile ?
+                                 NamespaceCodegen.getNamespacePartInternalName(
+                                         BindingContextUtils.getContainingFile(bindingContext, descriptor)) :
+                                 NamespaceCodegen.getJVMClassNameForKotlinNs(namespaceQN).getInternalName();
+            }
+            FunctionDescriptor function = DescriptorUtils.getParentOfType(descriptor, FunctionDescriptor.class);
+
+            //function could be null only for object literal in package namespace
+            assert (!isObjectLiteral && function != null) || isObjectLiteral:
+                    "Function descriptor should be present: " + descriptor.getName();
+
+            Name functionName = function != null ? function.getName() : null;
+
+            v.visitOuterClass(outerClassName,
+                              functionName != null ? functionName.getName() : null,
+                              functionName != null ? typeMapper.mapSignature(functionName, function).getAsmMethod().getDescriptor() : null);
+
         }
     }
 
@@ -240,16 +274,6 @@ public class ImplementationBodyCodegen extends ClassBodyCodegen {
         }
         annotationVisitor.visit(JvmStdlibNames.ABI_VERSION_NAME, JvmAbi.VERSION);
         annotationVisitor.visitEnd();
-    }
-
-    @Nullable
-    private static ClassDescriptor getContainingClassDescriptor(ClassDescriptor decl) {
-        DeclarationDescriptor container = decl.getContainingDeclaration();
-        while (container != null && !(container instanceof NamespaceDescriptor)) {
-            if (container instanceof ClassDescriptor) return (ClassDescriptor) container;
-            container = container.getContainingDeclaration();
-        }
-        return null;
     }
 
     private JvmClassSignature signature() {
