@@ -38,7 +38,7 @@ public class JetFacetConfiguration implements FacetConfiguration, PersistentStat
 
     @Override
     public FacetEditorTab[] createEditorTabs(FacetEditorContext editorContext, FacetValidatorsManager validatorsManager) {
-        return new FacetEditorTab[] { new JetFacetEditorTab(settingsData, validatorsManager) };
+        return new FacetEditorTab[] { new JetFacetEditorTab(settingsData, editorContext, validatorsManager) };
     }
 
     @Deprecated

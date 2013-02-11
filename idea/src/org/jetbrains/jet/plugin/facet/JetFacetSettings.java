@@ -22,9 +22,11 @@ import org.jetbrains.annotations.Nullable;
 public final class JetFacetSettings {
     private final static String DEFAULT_RUNTIME_LIBRARY_NAME = "kotlin-runtime";
     private final static String DEFAULT_JAVASCRIPT_FOLDER_NAME = "lib";
+    private final static String DEFAULT_JS_SOURCES_LIBRARY_NAME = "kotlin-jslib";
 
     private boolean isJavaModule = true;
-    private String runtimeLibraryName = DEFAULT_RUNTIME_LIBRARY_NAME;
+    private String javaRuntimeLibraryName = DEFAULT_RUNTIME_LIBRARY_NAME;
+    private String jsSourcesLibraryName = DEFAULT_JS_SOURCES_LIBRARY_NAME;
     private String jsLibraryFolder = DEFAULT_JAVASCRIPT_FOLDER_NAME;
 
     public boolean isJavaModule() {
@@ -36,12 +38,20 @@ public final class JetFacetSettings {
     }
 
     @NotNull
-    public String getRuntimeLibraryName() {
-        return runtimeLibraryName;
+    public String getJavaRuntimeLibraryName() {
+        return javaRuntimeLibraryName;
     }
 
-    public void setRuntimeLibraryName(@Nullable String runtimeLibraryName) {
-        this.runtimeLibraryName = runtimeLibraryName != null ? runtimeLibraryName : DEFAULT_RUNTIME_LIBRARY_NAME;
+    public void setJavaRuntimeLibraryName(@Nullable String javaRuntimeLibraryName) {
+        this.javaRuntimeLibraryName = javaRuntimeLibraryName != null ? javaRuntimeLibraryName : DEFAULT_RUNTIME_LIBRARY_NAME;
+    }
+
+    public String getJsSourcesLibraryName() {
+        return jsSourcesLibraryName;
+    }
+
+    public void setJsSourcesLibraryName(@Nullable String jsSourcesLibraryName) {
+        this.jsSourcesLibraryName = jsSourcesLibraryName != null ? jsSourcesLibraryName : DEFAULT_JS_SOURCES_LIBRARY_NAME;
     }
 
     @NotNull
@@ -61,8 +71,9 @@ public final class JetFacetSettings {
         JetFacetSettings settings = (JetFacetSettings) o;
 
         if (isJavaModule != settings.isJavaModule) return false;
+        if (!javaRuntimeLibraryName.equals(settings.javaRuntimeLibraryName)) return false;
         if (!jsLibraryFolder.equals(settings.jsLibraryFolder)) return false;
-        if (!runtimeLibraryName.equals(settings.runtimeLibraryName)) return false;
+        if (!jsSourcesLibraryName.equals(settings.jsSourcesLibraryName)) return false;
 
         return true;
     }
@@ -70,7 +81,8 @@ public final class JetFacetSettings {
     @Override
     public int hashCode() {
         int result = (isJavaModule ? 1 : 0);
-        result = 31 * result + runtimeLibraryName.hashCode();
+        result = 31 * result + javaRuntimeLibraryName.hashCode();
+        result = 31 * result + jsSourcesLibraryName.hashCode();
         result = 31 * result + jsLibraryFolder.hashCode();
         return result;
     }

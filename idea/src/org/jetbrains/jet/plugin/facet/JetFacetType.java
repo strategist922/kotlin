@@ -18,6 +18,8 @@ package org.jetbrains.jet.plugin.facet;
 
 import com.intellij.facet.Facet;
 import com.intellij.facet.FacetType;
+import com.intellij.facet.FacetTypeRegistry;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.module.JavaModuleType;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleType;
@@ -32,6 +34,10 @@ public class JetFacetType extends FacetType<JetFacet, JetFacetConfiguration> {
     @NonNls
     private static final String ID = "Kotlin";
 
+    @NotNull
+    public static JetFacetType getInstance() {
+        return (JetFacetType) FacetTypeRegistry.getInstance().findFacetType(JetFacet.JET_FACET_TYPE_ID);
+    }
 
     public JetFacetType() {
         super(JetFacet.JET_FACET_TYPE_ID, ID, "Kotlin", null);
