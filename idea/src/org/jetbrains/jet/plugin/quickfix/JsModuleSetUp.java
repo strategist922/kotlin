@@ -17,6 +17,7 @@
 package org.jetbrains.jet.plugin.quickfix;
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
+import com.intellij.facet.impl.FacetUtil;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
@@ -35,6 +36,7 @@ import com.intellij.psi.PsiManager;
 import com.intellij.psi.impl.PsiModificationTrackerImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.jet.plugin.facet.JetFacetType;
 import org.jetbrains.jet.plugin.project.K2JSModuleComponent;
 import org.jetbrains.jet.utils.KotlinPaths;
 import org.jetbrains.jet.utils.PathUtil;
@@ -67,6 +69,8 @@ public final class JsModuleSetUp {
 
         setUpK2JSModuleComponent(module);
         setUpLibraryAsSourceLibrary(module, rootDir);
+
+        FacetUtil.addFacet(module, JetFacetType.getInstance());
 
         restartHighlightingInTheWholeProject(module);
 

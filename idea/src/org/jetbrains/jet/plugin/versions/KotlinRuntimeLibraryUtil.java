@@ -20,6 +20,8 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
+import com.intellij.facet.impl.DefaultFacetsProvider;
+import com.intellij.facet.impl.FacetUtil;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.project.Project;
@@ -51,6 +53,8 @@ import org.jetbrains.jet.lang.resolve.java.AbiVersionUtil;
 import org.jetbrains.jet.lang.resolve.java.PackageClassUtils;
 import org.jetbrains.jet.lang.resolve.name.FqName;
 import org.jetbrains.jet.lang.resolve.name.Name;
+import org.jetbrains.jet.plugin.facet.JetFacet;
+import org.jetbrains.jet.plugin.facet.JetFacetType;
 import org.jetbrains.jet.utils.PathUtil;
 
 import java.io.File;
@@ -135,7 +139,7 @@ public class KotlinRuntimeLibraryUtil {
     }
 
     public static boolean isModuleAlreadyConfigured(Module module) {
-        return isMavenModule(module) || isJsModule(module) || isWithJavaModule(module);
+        return isMavenModule(module) || isWithKotlinFacet(module);
     }
 
     private static boolean isMavenModule(@NotNull Module module) {
@@ -149,6 +153,10 @@ public class KotlinRuntimeLibraryUtil {
         GlobalSearchScope scope = module.getModuleWithDependenciesAndLibrariesScope(false);
 
         return getKotlinRuntimeMarkerClass(scope) != null;
+    }
+
+    private static boolean isWithKotlinFacet(Module module) {
+        return DefaultFacetsProvider.INSTANCE.findFacet(module, JetFacet.JET_FACET_TYPE_ID, JetFacetType.getInstance().getPresentableName()) != null;
     }
 
     @Nullable
@@ -199,16 +207,27 @@ public class KotlinRuntimeLibraryUtil {
         });
     }
 
+    public static boolean isLibraryCanBeUsedAsJavaRuntime(@Nullable Library library) {
+        if (library == null) {
+            return false;
+        }
+
+        for (VirtualFile root : library.getFiles(OrderRootType.CLASSES)) {
+            if (root.getName().equals(KOTLIN_RUNTIME_JAR)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     @Nullable
     static Library findOrCreateRuntimeLibrary(@NotNull Project project, @NotNull FindRuntimeLibraryHandler handler) {
         final LibraryTable table = ProjectLibraryTable.getInstance(project);
         final Library kotlinRuntime = table.getLibraryByName(LIBRARY_NAME);
-        if (kotlinRuntime != null) {
-            for (VirtualFile root : kotlinRuntime.getFiles(OrderRootType.CLASSES)) {
-                if (root.getName().equals(KOTLIN_RUNTIME_JAR)) {
-                    return kotlinRuntime;
-                }
-            }
+
+        if (isLibraryCanBeUsedAsJavaRuntime(kotlinRuntime)) {
+            return kotlinRuntime;
         }
 
         File runtimePath = PathUtil.getKotlinPathsForIdeaPlugin().getRuntimePath();

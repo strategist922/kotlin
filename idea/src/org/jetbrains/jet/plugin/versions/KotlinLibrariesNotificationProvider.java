@@ -52,6 +52,7 @@ import com.intellij.util.messages.MessageBusConnection;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.jet.plugin.JetFileType;
+import org.jetbrains.jet.plugin.facet.JetFacetInEditorConfigurator;
 import org.jetbrains.jet.plugin.quickfix.JsModuleSetUp;
 
 import javax.swing.*;
@@ -135,14 +136,14 @@ public class KotlinLibrariesNotificationProvider extends EditorNotifications.Pro
         answer.createActionLabel("Set up module '" + module.getName() + "' as JVM Kotlin module", new Runnable() {
             @Override
             public void run() {
-                setUpJavaModule(module);
+                JetFacetInEditorConfigurator.configureAsJavaModule(module);
             }
         });
 
         answer.createActionLabel("Set up module '" + module.getName() + "' as JavaScript Kotlin module", new Runnable() {
             @Override
             public void run() {
-                setUpJSModule(module);
+                JetFacetInEditorConfigurator.configureAsJavaScriptModule(module);
             }
         });
 
@@ -231,39 +232,6 @@ public class KotlinLibrariesNotificationProvider extends EditorNotifications.Pro
         });
     }
 
-    private static class ChoosePathDialog extends DialogWrapper {
-        private final Project myProject;
-        private TextFieldWithBrowseButton myPathField;
-
-        protected ChoosePathDialog(Project project) {
-            super(project);
-            myProject = project;
-
-            setTitle("Local Kotlin Runtime Path");
-            init();
-        }
-
-        @Override
-        protected JComponent createCenterPanel() {
-            FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor();
-            FileTextField field = FileChooserFactory.getInstance().createFileTextField(descriptor, myDisposable);
-            field.getField().setColumns(25);
-            myPathField = new TextFieldWithBrowseButton(field.getField());
-            myPathField.addBrowseFolderListener("Choose Destination Folder", "Choose folder for file", myProject, descriptor);
-
-            VirtualFile baseDir = myProject.getBaseDir();
-            if (baseDir != null) {
-                myPathField.setText(baseDir.getPath().replace('/', File.separatorChar) + File.separatorChar + "lib");
-            }
-
-            return myPathField;
-        }
-
-        public String getPath() {
-            return myPathField.getText();
-        }
-    }
-
     private class UiFindRuntimeLibraryHandler extends KotlinRuntimeLibraryUtil.FindRuntimeLibraryHandler {
         @Override
         public void runtimePathDoesNotExist(@NotNull File path) {
@@ -274,11 +242,13 @@ public class KotlinLibrariesNotificationProvider extends EditorNotifications.Pro
 
         @Override
         public File getRuntimeJarPath() {
-            ChoosePathDialog dlg = new ChoosePathDialog(myProject);
-            dlg.show();
-            if (!dlg.isOK()) return null;
-            String path = dlg.getPath();
-            return new File(path, "kotlin-runtime.jar");
+            //ChoosePathDialog dlg = new ChoosePathDialog(myProject);
+            //dlg.show();
+            //if (!dlg.isOK()) return null;
+            //String path = dlg.getPath();
+            //return new File(path, "kotlin-runtime.jar");
+
+            return new File("kotlin-runtime.jar");
         }
 
         @Override

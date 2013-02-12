@@ -30,12 +30,13 @@ import com.intellij.openapi.roots.ui.configuration.libraries.AddCustomLibraryDia
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.ui.ListCellRendererWrapper;
 import com.intellij.util.ArrayUtil;
+import com.intellij.util.ParameterizedRunnable;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.jet.plugin.JetLanguage;
+import org.jetbrains.jet.plugin.facet.JavaRuntimeLibraryDescription;
 import org.jetbrains.jet.plugin.facet.JetFacetSettings;
-import org.jetbrains.jet.plugin.facet.RuntimeLibraryDescription;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
@@ -43,6 +44,7 @@ import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 public class JetFacetEditorTab extends FacetEditorTab {
     private final JetFacetSettings facetSettings;
@@ -55,6 +57,7 @@ public class JetFacetEditorTab extends FacetEditorTab {
     private JComboBox kotlinJSSourcesComboBox;
     private JButton createJSSourcesLibraryButton;
     private TextFieldWithBrowseButton javaScriptRuntimeFileField;
+    private JButton bundledButton;
 
     public JetFacetEditorTab(JetFacetSettings facetSettings, FacetEditorContext editorContext, FacetValidatorsManager validatorsManager) {
         this.facetSettings = facetSettings;
@@ -101,14 +104,33 @@ public class JetFacetEditorTab extends FacetEditorTab {
     }
 
     private void onCreateJavaRuntimeLibrary() {
-        AddCustomLibraryDialog libraryDialog =
-                AddCustomLibraryDialog.createDialog(new RuntimeLibraryDescription(), editorContext.getModule(), null);
+        AddLibraryWithCopyDialog libraryDialog = AddLibraryWithCopyDialog.createDialog(
+                new JavaRuntimeLibraryDescription(), editorContext.getModule(),
+                new ParameterizedRunnable<AddLibraryWithCopyDialog.LibraryCreateContext>() {
+                        @Override
+                        public void run(AddLibraryWithCopyDialog.LibraryCreateContext context) {
+                            // JavaRuntimeLibraryDescription.copyRuntimeJarToFolder(context.getRootModule(), context.getLibrarySettings());
+                        }
+                });
+
+        //AddCustomLibraryDialog libraryDialog = AddCustomLibraryDialog.createDialog(
+        //        new JavaRuntimeLibraryDescription(), editorContext.getModule(), null);
+
         libraryDialog.show();
+
+        if (libraryDialog.isOK()) {
+            List<Library> libraries = libraryDialog.getAddedLibraries();
+            if (libraries.size() != 0) {
+                assert libraries.size() == 1;
+
+                runtimeLibraryComboBox.setModel(getModelForJavaRuntimeLibrary(libraries));
+            }
+        }
     }
 
     private void onCreateJavaScriptSourceLibrary() {
         AddCustomLibraryDialog libraryDialog =
-                AddCustomLibraryDialog.createDialog(new RuntimeLibraryDescription(), editorContext.getModule(), null);
+                AddCustomLibraryDialog.createDialog(new JavaRuntimeLibraryDescription(), editorContext.getModule(), null);
         libraryDialog.show();
     }
 
@@ -196,22 +218,13 @@ public class JetFacetEditorTab extends FacetEditorTab {
 
         Collection<Library> libraries = getLibraries(editorContext.getProject   ());
 
-        DefaultComboBoxModel javaRuntimeLibrariesModel = new DefaultComboBoxModel(ArrayUtil.toObjectArray(libraries, Library.class));
-        javaRuntimeLibrariesModel.insertElementAt(null, 0);
+        runtimeLibraryComboBox.setModel(getModelForJavaRuntimeLibrary(libraries));
+        kotlinJSSourcesComboBox.setModel(getModelForJavaScriptLibrary(libraries));
 
-        Optional<Library> runtimeLibrarySelected = Iterables.tryFind(libraries, new Predicate<Library>() {
-            @Override
-            public boolean apply(@Nullable Library lib) {
-                assert lib != null;
-                return facetSettings.getJavaRuntimeLibraryName().equals(lib.getName());
-            }
-        });
+        changeModuleTypeControls(facetSettings.isJavaModule());
+    }
 
-        if (runtimeLibrarySelected.isPresent()) {
-            javaRuntimeLibrariesModel.setSelectedItem(runtimeLibrarySelected.get());
-        }
-        runtimeLibraryComboBox.setModel(javaRuntimeLibrariesModel);
-
+    private DefaultComboBoxModel getModelForJavaScriptLibrary(Collection<Library> libraries) {
         DefaultComboBoxModel jsSourceLibrariesModel = new DefaultComboBoxModel(ArrayUtil.toObjectArray(libraries, Library.class));
         jsSourceLibrariesModel.insertElementAt(null, 0);
 
@@ -226,10 +239,27 @@ public class JetFacetEditorTab extends FacetEditorTab {
         if (jsSourceLibrarySelected.isPresent()) {
             jsSourceLibrariesModel.setSelectedItem(jsSourceLibrarySelected.get());
         }
-        kotlinJSSourcesComboBox.setModel(jsSourceLibrariesModel);
-
-        changeModuleTypeControls(facetSettings.isJavaModule());
+        return jsSourceLibrariesModel;
     }
+
+    private DefaultComboBoxModel getModelForJavaRuntimeLibrary(Collection<Library> libraries) {
+        DefaultComboBoxModel javaRuntimeLibrariesModel = new DefaultComboBoxModel(ArrayUtil.toObjectArray(libraries, Library.class));
+        javaRuntimeLibrariesModel.insertElementAt(null, 0);
+
+        Optional<Library> runtimeLibrarySelected = Iterables.tryFind(libraries, new Predicate<Library>() {
+            @Override
+            public boolean apply(@Nullable Library lib) {
+                assert lib != null;
+                return facetSettings.getJavaRuntimeLibraryName().equals(lib.getName());
+            }
+        });
+
+        if (runtimeLibrarySelected.isPresent()) {
+            javaRuntimeLibrariesModel.setSelectedItem(runtimeLibrarySelected.get());
+        }
+        return javaRuntimeLibrariesModel;
+    }
+
 
     // TODO: Move to utility methods
     protected static Collection<Library> getLibraries(Project project) {
