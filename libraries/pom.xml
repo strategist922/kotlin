@@ -62,6 +62,7 @@
         <module>tools/kotlin-js-tests-junit</module>
         <module>tools/kdoc</module>
         <module>tools/kdoc-maven-plugin</module>
+        <module>tools/kotlin-stdlib-gen</module>
 
         <module>stdlib</module>
         <module>kunit</module>
