@@ -1045,6 +1045,16 @@ public class JetDiagnosticsTestGenerated extends AbstractDiagnosticsTestWithEage
                 doTest("compiler/testData/diagnostics/tests/controlStructures/tryReturnType.kt");
             }
             
+            @TestMetadata("valVarCatchParameter.kt")
+            public void testValVarCatchParameter() throws Exception {
+                doTest("compiler/testData/diagnostics/tests/controlStructures/valVarCatchParameter.kt");
+            }
+            
+            @TestMetadata("valVarLoopParameter.kt")
+            public void testValVarLoopParameter() throws Exception {
+                doTest("compiler/testData/diagnostics/tests/controlStructures/valVarLoopParameter.kt");
+            }
+            
             @TestMetadata("when.kt234.kt973.kt")
             public void testWhen_kt234_kt973() throws Exception {
                 doTest("compiler/testData/diagnostics/tests/controlStructures/when.kt234.kt973.kt");
@@ -1536,6 +1546,11 @@ public class JetDiagnosticsTestGenerated extends AbstractDiagnosticsTestWithEage
             @TestMetadata("RedeclarationsInMultiDecl.kt")
             public void testRedeclarationsInMultiDecl() throws Exception {
                 doTest("compiler/testData/diagnostics/tests/declarationChecks/RedeclarationsInMultiDecl.kt");
+            }
+            
+            @TestMetadata("valVarFunctionParameter.kt")
+            public void testValVarFunctionParameter() throws Exception {
+                doTest("compiler/testData/diagnostics/tests/declarationChecks/valVarFunctionParameter.kt");
             }
             
             @TestMetadata("VarianceOnFunctionAndPropertyTypeParameters.kt")
