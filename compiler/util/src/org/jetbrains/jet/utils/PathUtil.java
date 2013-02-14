@@ -138,9 +138,14 @@ public class PathUtil {
 
     @NotNull
     public static File findRtJar() {
-        String javaHome = System.getProperty("java.home");
-        if ("jre".equals(new File(javaHome).getName())) {
-            javaHome = new File(javaHome).getParent();
+        String javaHome = System.getenv("JDK_HOME");
+
+        if (javaHome == null) {
+            javaHome = System.getenv("JAVA_HOME");
+        }
+
+        if (javaHome == null) {
+            javaHome = System.getProperty("java.home");
         }
 
         File rtJar = findRtJar(javaHome);
@@ -158,10 +163,16 @@ public class PathUtil {
             return rtJar;
         }
 
+        rtJar = new File(javaHome, "lib/rt.jar");
+        if (rtJar.exists()) {
+            return rtJar;
+        }
+
         File classesJar = new File(new File(javaHome).getParentFile().getAbsolutePath(), "Classes/classes.jar");
         if (classesJar.exists()) {
             return classesJar;
         }
+
         return null;
     }
 }
