@@ -17,12 +17,15 @@
 package org.jetbrains.jet.plugin.facet;
 
 import com.intellij.facet.Facet;
+import com.intellij.facet.FacetManager;
 import com.intellij.facet.FacetType;
 import com.intellij.facet.FacetTypeRegistry;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.module.JavaModuleType;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleType;
+import com.intellij.openapi.util.Condition;
+import com.intellij.util.text.UniqueNameGenerator;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -50,10 +53,23 @@ public class JetFacetType extends FacetType<JetFacet, JetFacetConfiguration> {
 
     @Override
     public JetFacet createFacet(
-            @NotNull Module module, String name,
+            @NotNull Module module,
+            String name,
             @NotNull JetFacetConfiguration configuration, @Nullable Facet underlyingFacet
     ) {
         return new JetFacet(this, module, name, configuration, underlyingFacet);
+    }
+
+    @NotNull
+    public JetFacet createFacet(@NotNull final Module module, @NotNull JetFacetSettings settings) {
+        final String name = UniqueNameGenerator.generateUniqueName(getDefaultFacetName(), new Condition<String>() {
+            @Override
+            public boolean value(String s) {
+                return FacetManager.getInstance(module).findFacet(getId(), s) == null;
+            }
+        });
+
+        return new JetFacet(this, module, name, JetFacetConfiguration.create(settings), null);
     }
 
     @Override
@@ -64,6 +80,6 @@ public class JetFacetType extends FacetType<JetFacet, JetFacetConfiguration> {
     @Nullable
     @Override
     public Icon getIcon() {
-        return JetIcons.SMALL_LOGO;
+        return JetIcons.SMALL_LOGO_13;
     }
 }

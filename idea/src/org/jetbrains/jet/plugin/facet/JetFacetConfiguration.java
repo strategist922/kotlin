@@ -27,6 +27,7 @@ import com.intellij.openapi.util.InvalidDataException;
 import com.intellij.openapi.util.WriteExternalException;
 import com.intellij.util.xmlb.XmlSerializerUtil;
 import org.jdom.Element;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.jet.plugin.facet.ui.JetFacetEditorTab;
 
@@ -51,14 +52,21 @@ public class JetFacetConfiguration implements FacetConfiguration, PersistentStat
     public void writeExternal(Element element) throws WriteExternalException {
     }
 
+    @Override
+    public void loadState(JetFacetSettings state) {
+        XmlSerializerUtil.copyBean(state, settingsData);
+    }
+
     @Nullable
     @Override
     public JetFacetSettings getState() {
         return settingsData;
     }
 
-    @Override
-    public void loadState(JetFacetSettings state) {
-        XmlSerializerUtil.copyBean(state, settingsData);
+    public static JetFacetConfiguration create(@NotNull JetFacetSettings settings) {
+        JetFacetConfiguration configuration = new JetFacetConfiguration();
+        configuration.loadState(settings);
+
+        return configuration;
     }
 }

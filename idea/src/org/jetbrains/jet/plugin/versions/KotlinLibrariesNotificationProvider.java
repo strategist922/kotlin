@@ -136,29 +136,22 @@ public class KotlinLibrariesNotificationProvider extends EditorNotifications.Pro
         answer.createActionLabel("Set up module '" + module.getName() + "' as JVM Kotlin module", new Runnable() {
             @Override
             public void run() {
-                JetFacetInEditorConfigurator.configureAsJavaModule(module);
+                if (JetFacetInEditorConfigurator.configureAsJavaModule(module)) {
+                    updateNotifications();
+                }
             }
         });
 
         answer.createActionLabel("Set up module '" + module.getName() + "' as JavaScript Kotlin module", new Runnable() {
             @Override
             public void run() {
-                JetFacetInEditorConfigurator.configureAsJavaScriptModule(module);
+                if (JetFacetInEditorConfigurator.configureAsJavaScriptModule(module)) {
+                    updateNotifications();
+                }
             }
         });
 
         return answer;
-    }
-
-    private void setUpJavaModule(Module module) {
-        Library library = KotlinRuntimeLibraryUtil.findOrCreateRuntimeLibrary(myProject, new UiFindRuntimeLibraryHandler());
-        if (library == null) return;
-
-        KotlinRuntimeLibraryUtil.setUpKotlinRuntimeLibrary(module, library, updateNotifications);
-    }
-
-    private void setUpJSModule(@NotNull Module module) {
-        JsModuleSetUp.doSetUpModule(module, updateNotifications);
     }
 
     private EditorNotificationPanel createUnsupportedAbiVersionNotificationPanel(final Collection<VirtualFile> badRoots) {
@@ -230,32 +223,6 @@ public class KotlinLibrariesNotificationProvider extends EditorNotifications.Pro
                 EditorNotifications.getInstance(myProject).updateAllNotifications();
             }
         });
-    }
-
-    private class UiFindRuntimeLibraryHandler extends KotlinRuntimeLibraryUtil.FindRuntimeLibraryHandler {
-        @Override
-        public void runtimePathDoesNotExist(@NotNull File path) {
-            Messages.showErrorDialog(myProject,
-                                     "kotlin-runtime.jar is not found at " + path + ". Make sure plugin is properly installed.",
-                                     "No Runtime Found");
-        }
-
-        @Override
-        public File getRuntimeJarPath() {
-            //ChoosePathDialog dlg = new ChoosePathDialog(myProject);
-            //dlg.show();
-            //if (!dlg.isOK()) return null;
-            //String path = dlg.getPath();
-            //return new File(path, "kotlin-runtime.jar");
-
-            return new File("kotlin-runtime.jar");
-        }
-
-        @Override
-        public void ioExceptionOnCopyingJar(@NotNull IOException e) {
-            Messages.showErrorDialog(myProject, "Error copying jar: " + e.getLocalizedMessage(), "Error Copying File");
-        }
-
     }
 
     private static void navigateToLibraryRoot(Project project, @NotNull VirtualFile root) {

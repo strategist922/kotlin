@@ -16,29 +16,75 @@
 
 package org.jetbrains.jet.plugin.facet;
 
+import com.intellij.facet.FacetManager;
+import com.intellij.facet.ModifiableFacetModel;
+import com.intellij.facet.impl.DefaultFacetsProvider;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.module.Module;
+import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.ui.configuration.libraries.AddCustomLibraryDialog;
+import com.intellij.openapi.roots.ui.configuration.projectRoot.LibrariesContainer;
+import org.jetbrains.jet.plugin.facet.ui.BundledLibraryConfiguration;
+import org.jetbrains.jet.plugin.facet.ui.CreateBundledLibraryDialog;
 
 public class JetFacetInEditorConfigurator {
-    public static final String LIBRARY_NAME = "KotlinRuntime";
-    public static final String KOTLIN_RUNTIME_JAR = "kotlin-runtime.jar";
-    public static final String UNKNOWN_VERSION = "UNKNOWN";
-
     private JetFacetInEditorConfigurator() {}
 
-    public static void configureAsJavaModule(Module module) {
-        //AddCustomLibraryDialog libraryDialog = new AddCustomLibraryDialog(module.getProject());
-        //libraryDialog.show();
-
-
-
-        // TODO: Create facet and bind library
+    public static boolean configureAsJavaModule(Module module) {
+        return addFacet(module, getSettingsForJavaConfiguration(module));
     }
 
-    public static void configureAsJavaScriptModule(Module module) {
-        //AddCustomLibraryDialog libraryDialog = new AddCustomLibraryDialog(module.getProject());
-        //libraryDialog.show();
+    public static boolean configureAsJavaScriptModule(Module module) {
+        return addFacet(module, getSettingsForJavaScriptConfiguration(module));
+    }
 
-        // TODO: Create facet and bind library
+    private static boolean addFacet(Module module, JetFacetSettings settings) {
+        if (settings == null) {
+            // Configuring was canceled
+            return false;
+        }
+
+        final JetFacet facet = JetFacetType.getInstance().createFacet(module, settings);
+
+        final ModifiableFacetModel model = FacetManager.getInstance(module).createModifiableModel();
+        ApplicationManager.getApplication().runWriteAction(new Runnable() {
+            @Override
+            public void run() {
+                model.addFacet(facet);
+                model.commit();
+            }
+        });
+
+        return true;
+    }
+
+    private static JetFacetSettings getSettingsForJavaConfiguration(Module module) {
+        CreateBundledLibraryDialog libraryDialog = new CreateBundledLibraryDialog(module, BundledLibraryConfiguration.JAVA_RUNTIME_CONFIGURATION);
+        libraryDialog.show();
+
+        if (libraryDialog.isOK()) {
+            Library library = libraryDialog.getLibrary();
+            assert library != null : "Library should have been created";
+
+            return new JetFacetSettings(true, library.getName(), LibrariesContainer.LibraryLevel.PROJECT, null, null, null);
+        }
+
+        // Configuration was canceled
+        return null;
+    }
+
+    private static JetFacetSettings getSettingsForJavaScriptConfiguration(Module module) {
+        CreateBundledLibraryDialog libraryDialog = new CreateBundledLibraryDialog(module, BundledLibraryConfiguration.JAVA_RUNTIME_CONFIGURATION);
+        libraryDialog.show();
+
+        if (libraryDialog.isOK()) {
+            Library library = libraryDialog.getLibrary();
+            assert library != null : "Library should have been created";
+
+            return new JetFacetSettings(true, library.getName(), LibrariesContainer.LibraryLevel.PROJECT, null, null, null);
+        }
+
+        // Configuration was canceled
+        return null;
     }
 }

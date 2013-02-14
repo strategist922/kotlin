@@ -16,18 +16,36 @@
 
 package org.jetbrains.jet.plugin.facet;
 
-import org.jetbrains.annotations.NotNull;
+import com.intellij.openapi.roots.ui.configuration.projectRoot.LibrariesContainer;
 import org.jetbrains.annotations.Nullable;
 
 public final class JetFacetSettings {
-    private final static String DEFAULT_RUNTIME_LIBRARY_NAME = "kotlin-runtime";
-    private final static String DEFAULT_JAVASCRIPT_FOLDER_NAME = "lib";
-    private final static String DEFAULT_JS_SOURCES_LIBRARY_NAME = "kotlin-jslib";
-
     private boolean isJavaModule = true;
-    private String javaRuntimeLibraryName = DEFAULT_RUNTIME_LIBRARY_NAME;
-    private String jsSourcesLibraryName = DEFAULT_JS_SOURCES_LIBRARY_NAME;
-    private String jsLibraryFolder = DEFAULT_JAVASCRIPT_FOLDER_NAME;
+
+    private String javaRuntimeLibraryName = null;
+    private LibrariesContainer.LibraryLevel javaRuntimeLibraryLevel = LibrariesContainer.LibraryLevel.PROJECT;
+    private String jsStdLibraryName = null;
+    private LibrariesContainer.LibraryLevel jsStdLibraryLevel = LibrariesContainer.LibraryLevel.PROJECT;
+    private String jsLibraryFolder = null;
+
+    JetFacetSettings(
+            boolean javaModule,
+            @Nullable String javaRuntimeLibraryName,
+            @Nullable LibrariesContainer.LibraryLevel javaRuntimeLibraryLevel,
+            @Nullable String jsStdLibraryName,
+            @Nullable LibrariesContainer.LibraryLevel jsStdLibraryLevel,
+            @Nullable String jsLibraryFolder
+    ) {
+        isJavaModule = javaModule;
+        this.javaRuntimeLibraryName = javaRuntimeLibraryName;
+        this.javaRuntimeLibraryLevel = javaRuntimeLibraryLevel;
+        this.jsStdLibraryName = jsStdLibraryName;
+        this.jsStdLibraryLevel = jsStdLibraryLevel;
+        this.jsLibraryFolder = jsLibraryFolder;
+    }
+
+    public JetFacetSettings() {
+    }
 
     public boolean isJavaModule() {
         return isJavaModule;
@@ -37,30 +55,49 @@ public final class JetFacetSettings {
         isJavaModule = javaModule;
     }
 
-    @NotNull
+    @Nullable
     public String getJavaRuntimeLibraryName() {
         return javaRuntimeLibraryName;
     }
 
     public void setJavaRuntimeLibraryName(@Nullable String javaRuntimeLibraryName) {
-        this.javaRuntimeLibraryName = javaRuntimeLibraryName != null ? javaRuntimeLibraryName : DEFAULT_RUNTIME_LIBRARY_NAME;
+        this.javaRuntimeLibraryName = javaRuntimeLibraryName;
     }
 
-    public String getJsSourcesLibraryName() {
-        return jsSourcesLibraryName;
+    @Nullable
+    public LibrariesContainer.LibraryLevel getJavaRuntimeLibraryLevel() {
+        return javaRuntimeLibraryLevel;
     }
 
-    public void setJsSourcesLibraryName(@Nullable String jsSourcesLibraryName) {
-        this.jsSourcesLibraryName = jsSourcesLibraryName != null ? jsSourcesLibraryName : DEFAULT_JS_SOURCES_LIBRARY_NAME;
+    public void setJavaRuntimeLibraryLevel(@Nullable LibrariesContainer.LibraryLevel javaRuntimeLibraryLevel) {
+        this.javaRuntimeLibraryLevel = javaRuntimeLibraryLevel;
     }
 
-    @NotNull
+    @Nullable
+    public String getJsStdLibraryName() {
+        return jsStdLibraryName;
+    }
+
+    public void setJsStdLibraryName(@Nullable String jsStdLibraryName) {
+        this.jsStdLibraryName = jsStdLibraryName;
+    }
+
+    @Nullable
+    public LibrariesContainer.LibraryLevel getJsStdLibraryLevel() {
+        return jsStdLibraryLevel;
+    }
+
+    public void setJsStdLibraryLevel(@Nullable LibrariesContainer.LibraryLevel jsStdLibraryLevel) {
+        this.jsStdLibraryLevel = jsStdLibraryLevel;
+    }
+
+    @Nullable
     public String getJsLibraryFolder() {
         return jsLibraryFolder;
     }
 
     public void setJsLibraryFolder(@Nullable String jsLibraryFolder) {
-        this.jsLibraryFolder = jsLibraryFolder != null ? jsLibraryFolder : DEFAULT_JAVASCRIPT_FOLDER_NAME;
+        this.jsLibraryFolder = jsLibraryFolder;
     }
 
     @Override
@@ -71,9 +108,16 @@ public final class JetFacetSettings {
         JetFacetSettings settings = (JetFacetSettings) o;
 
         if (isJavaModule != settings.isJavaModule) return false;
-        if (!javaRuntimeLibraryName.equals(settings.javaRuntimeLibraryName)) return false;
-        if (!jsLibraryFolder.equals(settings.jsLibraryFolder)) return false;
-        if (!jsSourcesLibraryName.equals(settings.jsSourcesLibraryName)) return false;
+        if (javaRuntimeLibraryLevel != settings.javaRuntimeLibraryLevel) return false;
+        if (javaRuntimeLibraryName != null
+            ? !javaRuntimeLibraryName.equals(settings.javaRuntimeLibraryName)
+            : settings.javaRuntimeLibraryName != null) {
+            return false;
+        }
+        if (jsLibraryFolder != null ? !jsLibraryFolder.equals(settings.jsLibraryFolder) : settings.jsLibraryFolder != null) return false;
+        if (jsStdLibraryLevel != settings.jsStdLibraryLevel) return false;
+        if (jsStdLibraryName != null ? !jsStdLibraryName.equals(settings.jsStdLibraryName) : settings.jsStdLibraryName != null)
+            return false;
 
         return true;
     }
@@ -81,9 +125,11 @@ public final class JetFacetSettings {
     @Override
     public int hashCode() {
         int result = (isJavaModule ? 1 : 0);
-        result = 31 * result + javaRuntimeLibraryName.hashCode();
-        result = 31 * result + jsSourcesLibraryName.hashCode();
-        result = 31 * result + jsLibraryFolder.hashCode();
+        result = 31 * result + (javaRuntimeLibraryName != null ? javaRuntimeLibraryName.hashCode() : 0);
+        result = 31 * result + (javaRuntimeLibraryLevel != null ? javaRuntimeLibraryLevel.hashCode() : 0);
+        result = 31 * result + (jsStdLibraryName != null ? jsStdLibraryName.hashCode() : 0);
+        result = 31 * result + (jsStdLibraryLevel != null ? jsStdLibraryLevel.hashCode() : 0);
+        result = 31 * result + (jsLibraryFolder != null ? jsLibraryFolder.hashCode() : 0);
         return result;
     }
 }
