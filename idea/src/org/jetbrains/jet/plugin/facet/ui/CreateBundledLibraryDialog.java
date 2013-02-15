@@ -18,26 +18,21 @@ package org.jetbrains.jet.plugin.facet.ui;
 
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import com.intellij.openapi.module.Module;
-import com.intellij.openapi.roots.ModuleRootManager;
 import com.intellij.openapi.roots.libraries.Library;
-import com.intellij.openapi.roots.libraries.LibraryTable;
-import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar;
 import com.intellij.openapi.roots.ui.configuration.libraryEditor.LibraryNameAndLevelPanel;
 import com.intellij.openapi.roots.ui.configuration.projectRoot.LibrariesContainer;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.util.ui.FormBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.jet.plugin.versions.KotlinRuntimeLibraryUtil;
 
 import javax.swing.*;
-import java.io.File;
-import java.io.IOException;
-import java.security.InvalidParameterException;
 
 public class CreateBundledLibraryDialog extends DialogWrapper {
     private final Module module;
+    private final BundledLibraryConfiguration configuration;
     private JPanel contentPane;
     private JPanel librarySettingsPanel;
     private final LibraryNameAndLevelPanel myNameAndLevelPanel;
@@ -50,6 +45,7 @@ public class CreateBundledLibraryDialog extends DialogWrapper {
     public CreateBundledLibraryDialog(Module module, BundledLibraryConfiguration configuration) {
         super(module.getProject());
         this.module = module;
+        this.configuration = configuration;
 
         setTitle("Create Bundled Library: " + configuration.getTitle());
 
@@ -85,48 +81,18 @@ public class CreateBundledLibraryDialog extends DialogWrapper {
         LibrariesContainer.LibraryLevel libraryLevel = myNameAndLevelPanel.getLibraryLevel();
         String libraryName = myNameAndLevelPanel.getLibraryName();
 
-        library = KotlinRuntimeLibraryUtil.createRuntimeLibrary(
-                getLibraryTable(module, libraryLevel),
-                libraryName,
-                new KotlinRuntimeLibraryUtil.FindRuntimeLibraryHandler() {
-                    @Nullable
-                    @Override
-                    public File getRuntimeJarPath() {
-                        return new File(getPath(), KotlinRuntimeLibraryUtil.KOTLIN_RUNTIME_JAR);
-                    }
-
-                    @Override
-                    public void runtimePathDoesNotExist(@NotNull File path) {
-                        super.runtimePathDoesNotExist(path);
-                    }
-
-                    @Override
-                    public void ioExceptionOnCopyingJar(@NotNull IOException e) {
-                        super.ioExceptionOnCopyingJar(e);
-                    }
-                });
-
-        if (library != null) {
-            // Exit only if library was created successfully
+        try {
+            library = configuration.createLibrary(module, libraryName, libraryLevel, getPath());
+            assert library != null : "Unknown error during library creation";
             super.doOKAction();
+        }
+        catch (BundledLibraryConfiguration.LibraryCreationException e) {
+            Messages.showErrorDialog(module.getProject(), e.getMessage(), "Error During Library Creation");
         }
     }
 
     @Nullable
     public Library getLibrary() {
         return library;
-    }
-
-    private static LibraryTable getLibraryTable(Module module, @NotNull LibrariesContainer.LibraryLevel level) {
-        switch (level) {
-            case MODULE:
-                return ModuleRootManager.getInstance(module).getModifiableModel().getModuleLibraryTable();
-            case PROJECT:
-                return LibraryTablesRegistrar.getInstance().getLibraryTable(module.getProject());
-            case GLOBAL:
-                return LibraryTablesRegistrar.getInstance().getLibraryTable();
-            default:
-                throw new InvalidParameterException("Unexpceted library level");
-        }
     }
 }

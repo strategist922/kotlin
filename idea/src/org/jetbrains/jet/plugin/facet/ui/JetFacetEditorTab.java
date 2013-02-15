@@ -19,15 +19,12 @@ package org.jetbrains.jet.plugin.facet.ui;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.intellij.facet.ui.*;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.fileChooser.FileTypeDescriptor;
 import com.intellij.openapi.options.ConfigurationException;
-import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ModifiableRootModel;
 import com.intellij.openapi.roots.ModuleRootManager;
-import com.intellij.openapi.roots.impl.libraries.ApplicationLibraryTable;
-import com.intellij.openapi.roots.impl.libraries.ProjectLibraryTable;
 import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.libraries.LibraryTable;
 import com.intellij.openapi.roots.ui.configuration.projectRoot.LibrariesContainer;
@@ -43,8 +40,6 @@ import org.jetbrains.jet.plugin.facet.JetFacetSettings;
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 
 public class JetFacetEditorTab extends FacetEditorTab {
@@ -58,6 +53,7 @@ public class JetFacetEditorTab extends FacetEditorTab {
     private JComboBox kotlinJSSourcesComboBox;
     private JButton createJSSourcesLibraryButton;
     private TextFieldWithBrowseButton javaScriptRuntimeFileField;
+    private JButton bundledJsButton;
 
     public JetFacetEditorTab(JetFacetSettings facetSettings, FacetEditorContext editorContext, FacetValidatorsManager validatorsManager) {
         this.facetSettings = facetSettings;
@@ -89,21 +85,44 @@ public class JetFacetEditorTab extends FacetEditorTab {
                 changeModuleTypeControls(javaModuleRadioButton.isSelected());
             }
         });
+
+        javaScriptRuntimeFileField.addBrowseFolderListener(
+                "Copy Bundled JavaScript Runtime",
+                "Select folder to copy",
+                editorContext.getProject(), new FileTypeDescriptor("SomeTitle", "js"));
+
         createJavaRuntimeLibraryButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(@NotNull ActionEvent e) {
-                onCreateJavaRuntimeLibrary();
+                onCreateJavaRuntimeLibraryButtonClicked();
             }
         });
         createJSSourcesLibraryButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(@NotNull ActionEvent e) {
-                onCreateJavaScriptSourceLibrary();
+                onCreateJSSourcesLibraryButtonClicked();
+            }
+        });
+        bundledJsButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                onBundleJsButtonClicked();
             }
         });
     }
 
-    private void onCreateJavaRuntimeLibrary() {
+    private void onBundleJsButtonClicked() {
+        ChoosePathDialog dialog = new ChoosePathDialog(
+                editorContext.getProject(), "Copy Bundled JavaScript Runtime",
+                "lib");
+        dialog.show();
+
+        if (dialog.isOK()) {
+            // TODO: Update everything
+        }
+    }
+
+    private void onCreateJavaRuntimeLibraryButtonClicked() {
         CreateBundledLibraryDialog libraryDialog = new CreateBundledLibraryDialog(
                 editorContext.getModule(), BundledLibraryConfiguration.JAVA_RUNTIME_CONFIGURATION);
         libraryDialog.show();
@@ -113,7 +132,7 @@ public class JetFacetEditorTab extends FacetEditorTab {
         }
     }
 
-    private void onCreateJavaScriptSourceLibrary() {
+    private void onCreateJSSourcesLibraryButtonClicked() {
         CreateBundledLibraryDialog libraryDialog = new CreateBundledLibraryDialog(
                 editorContext.getModule(), BundledLibraryConfiguration.JAVASCRIPT_STDLIB_CONFIGURATION);
         libraryDialog.show();
@@ -131,7 +150,7 @@ public class JetFacetEditorTab extends FacetEditorTab {
             }
         }
         else {
-            Library library = getSelectedJSSourcesLibrary();
+            Library library = getSelectedJSStandardLibrary();
             if (library == null) {
                 return new ValidationResult("Java Script Standard library isn't set");
             }
@@ -147,6 +166,7 @@ public class JetFacetEditorTab extends FacetEditorTab {
         kotlinJSSourcesComboBox.setEnabled(!isJavaModule);
         createJSSourcesLibraryButton.setEnabled(!isJavaModule);
         javaScriptRuntimeFileField.setEnabled(!isJavaModule);
+        bundledJsButton.setEnabled(!isJavaModule);
     }
 
     private void update(JetFacetSettings settings) {
@@ -154,9 +174,11 @@ public class JetFacetEditorTab extends FacetEditorTab {
 
         Library javaRuntimeLibrary = getSelectedRuntimeLibrary();
         settings.setJavaRuntimeLibraryName(javaRuntimeLibrary != null ? javaRuntimeLibrary.getName() : null);
+        settings.setJavaRuntimeLibraryLevel(javaRuntimeLibrary != null ? LibraryUtils.getLibraryLevel(javaRuntimeLibrary) : null);
 
-        Library jsSourcesLibrary = getSelectedJSSourcesLibrary();
+        Library jsSourcesLibrary = getSelectedJSStandardLibrary();
         settings.setJsStdLibraryName(jsSourcesLibrary != null ? jsSourcesLibrary.getName() : null);
+        settings.setJsStdLibraryLevel(jsSourcesLibrary != null ? LibraryUtils.getLibraryLevel(jsSourcesLibrary) : null);
 
         settings.setJsLibraryFolder(javaScriptRuntimeFileField.getText());
     }
@@ -169,7 +191,7 @@ public class JetFacetEditorTab extends FacetEditorTab {
         return (Library) runtimeLibraryComboBox.getSelectedItem();
     }
 
-    private Library getSelectedJSSourcesLibrary() {
+    private Library getSelectedJSStandardLibrary() {
         return (Library) kotlinJSSourcesComboBox.getSelectedItem();
     }
 
@@ -203,15 +225,12 @@ public class JetFacetEditorTab extends FacetEditorTab {
                     else {
                         model.dispose();
                     }
-
-                    // TODO
-                    //if (!jdkAnnotationsArePresent(module)) {
-                    //    addJdkAnnotations(module);
-                    //}
                 }
             });
         }
         else {
+            final Library library = getSelectedJSStandardLibrary();
+
 
         }
     }
@@ -241,24 +260,26 @@ public class JetFacetEditorTab extends FacetEditorTab {
         changeModuleTypeControls(facetSettings.isJavaModule());
     }
 
-    private DefaultComboBoxModel getModelForLibraries(Collection<Library> libraries, final String libName, LibrariesContainer.LibraryLevel level) {
+    private DefaultComboBoxModel getModelForLibraries(Collection<Library> libraries, @Nullable final String libName, @Nullable LibrariesContainer.LibraryLevel level) {
         DefaultComboBoxModel javaRuntimeLibrariesModel = new DefaultComboBoxModel(ArrayUtil.toObjectArray(libraries, Library.class));
         javaRuntimeLibrariesModel.insertElementAt(null, 0);
 
-        final LibraryTable libraryTable = LibraryUtils.getLibraryTable(editorContext.getModule(), level);
+        if (libName != null && level != null) {
+            final LibraryTable libraryTable = LibraryUtils.getLibraryTable(editorContext.getModule(), level);
+            Optional<Library> runtimeLibrarySelected = Iterables.tryFind(libraries, new Predicate<Library>() {
+                @Override
+                public boolean apply(@Nullable Library lib) {
+                    assert lib != null;
+                    String name = lib.getName();
+                    return name != null && name.equals(libName) && libraryTable.equals(lib.getTable());
+                }
+            });
 
-        Optional<Library> runtimeLibrarySelected = Iterables.tryFind(libraries, new Predicate<Library>() {
-            @Override
-            public boolean apply(@Nullable Library lib) {
-                assert lib != null;
-                String name = lib.getName();
-                return name != null && name.equals(libName) && libraryTable.equals(lib.getTable());
+            if (runtimeLibrarySelected.isPresent()) {
+                javaRuntimeLibrariesModel.setSelectedItem(runtimeLibrarySelected.get());
             }
-        });
-
-        if (runtimeLibrarySelected.isPresent()) {
-            javaRuntimeLibrariesModel.setSelectedItem(runtimeLibrarySelected.get());
         }
+
         return javaRuntimeLibrariesModel;
     }
 

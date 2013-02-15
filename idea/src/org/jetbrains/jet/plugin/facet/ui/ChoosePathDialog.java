@@ -23,21 +23,24 @@ import com.intellij.openapi.fileChooser.FileTextField;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
-import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import java.io.File;
 
 class ChoosePathDialog extends DialogWrapper {
     private final Project myProject;
+    private final String defaultPath;
     private TextFieldWithBrowseButton myPathField;
 
-    protected ChoosePathDialog(Project project) {
+    public ChoosePathDialog(
+            Project project,
+            String title,
+            String defaultPath) {
         super(project);
         myProject = project;
+        this.defaultPath = defaultPath;
 
-        setTitle("Local Kotlin Runtime Path");
+        setTitle(title);
         init();
     }
 
@@ -46,13 +49,10 @@ class ChoosePathDialog extends DialogWrapper {
         FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor();
         FileTextField field = FileChooserFactory.getInstance().createFileTextField(descriptor, myDisposable);
         field.getField().setColumns(25);
-        myPathField = new TextFieldWithBrowseButton(field.getField());
-        myPathField.addBrowseFolderListener("Choose Destination Folder", "Choose folder for file", myProject, descriptor);
 
-        VirtualFile baseDir = myProject.getBaseDir();
-        if (baseDir != null) {
-            myPathField.setText(baseDir.getPath().replace('/', File.separatorChar) + File.separatorChar + "lib");
-        }
+        myPathField = new TextFieldWithBrowseButton(field.getField());
+        myPathField.addBrowseFolderListener("Choose Destination Folder", "Choose folder", myProject, descriptor);
+        myPathField.setText(defaultPath);
 
         return myPathField;
     }

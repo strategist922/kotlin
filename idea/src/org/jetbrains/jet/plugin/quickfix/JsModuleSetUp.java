@@ -21,15 +21,13 @@ import com.intellij.facet.impl.FacetUtil;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.module.Module;
-import com.intellij.openapi.roots.ModifiableRootModel;
 import com.intellij.openapi.roots.ModuleRootManager;
+import com.intellij.openapi.roots.OrderRootType;
 import com.intellij.openapi.roots.libraries.Library;
-import com.intellij.openapi.roots.libraries.LibraryTable;
+import com.intellij.openapi.roots.ui.configuration.libraryEditor.NewLibraryEditor;
 import com.intellij.openapi.roots.ui.configuration.projectRoot.LibrariesContainer;
 import com.intellij.openapi.roots.ui.configuration.projectRoot.LibrariesContainerFactory;
-import com.intellij.openapi.vfs.JarFileSystem;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiManager;
@@ -68,7 +66,7 @@ public final class JsModuleSetUp {
         if (!copyJsLibFiles(rootDir)) return;
 
         setUpK2JSModuleComponent(module);
-        setUpLibraryAsSourceLibrary(module, rootDir);
+        createJSLibrary(module, LibrariesContainer.LibraryLevel.MODULE, rootDir);
 
         FacetUtil.addFacet(module, JetFacetType.getInstance());
 
@@ -77,26 +75,16 @@ public final class JsModuleSetUp {
         refreshRootDir(module, continuation);
     }
 
-    private static void setUpLibraryAsSourceLibrary(final Module module, final @NotNull File rootDir) {
+   public static Library createJSLibrary(final Module module, LibrariesContainer.LibraryLevel level, final @NotNull File rootDir) {
         final File libJarFile = new File(rootDir, "lib/" + PathUtil.JS_LIB_JAR_NAME);
         final VirtualFile libFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(libJarFile);
 
-        if (libFile != null) {
-            ApplicationManager.getApplication().runWriteAction(new Runnable() {
-                @Override
-                public void run() {
-                    ModifiableRootModel model = ModuleRootManager.getInstance(module).getModifiableModel();
-                    LibraryTable table = model.getModuleLibraryTable();
-                    Library jsLib = table.getLibraryByName(PathUtil.JS_LIB_JAR_NAME);
-                    if (jsLib == null) {
-                        VirtualFile libRoot = JarFileSystem.getInstance().getJarRootForLocalFile(libFile);
-                        LibrariesContainerFactory.createContainer(model).createLibrary(PathUtil.JS_LIB_JAR_NAME,
-                                LibrariesContainer.LibraryLevel.MODULE, new VirtualFile[0], new VirtualFile[] { libRoot });
-                        model.commit();
-                    }
-                }
-            });
-        }
+        NewLibraryEditor editor = new NewLibraryEditor();
+        editor.setName(PathUtil.JS_LIB_JAR_NAME);
+        editor.addRoot(libFile, OrderRootType.SOURCES);
+
+        LibrariesContainer container = LibrariesContainerFactory.createContainer(module);
+        return container.createLibrary(editor, level);
     }
 
     private static void setUpK2JSModuleComponent(@NotNull Module module) {

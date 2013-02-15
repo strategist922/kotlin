@@ -76,17 +76,9 @@
               </component>
               <component id="197d0" class="javax.swing.JComboBox" binding="kotlinJSSourcesComboBox" default-binding="true">
                 <constraints>
-                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="2" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
+                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties/>
-              </component>
-              <component id="4ac6e" class="javax.swing.JButton" binding="createJSSourcesLibraryButton">
-                <constraints>
-                  <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties>
-                  <text value="Cr&amp;eate..."/>
-                </properties>
               </component>
               <component id="5efca" class="javax.swing.JLabel">
                 <constraints>
@@ -98,9 +90,25 @@
               </component>
               <component id="5edd5" class="com.intellij.openapi.ui.TextFieldWithBrowseButton" binding="javaScriptRuntimeFileField">
                 <constraints>
-                  <grid row="1" column="1" row-span="1" col-span="2" vsize-policy="3" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                  <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties/>
+              </component>
+              <component id="151f7" class="javax.swing.JButton" binding="bundledJsButton" default-binding="true">
+                <constraints>
+                  <grid row="1" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+                </constraints>
+                <properties>
+                  <text value="Bundled..."/>
+                </properties>
+              </component>
+              <component id="4ac6e" class="javax.swing.JButton" binding="createJSSourcesLibraryButton">
+                <constraints>
+                  <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+                </constraints>
+                <properties>
+                  <text value="Cr&amp;eate..."/>
+                </properties>
               </component>
             </children>
           </grid>

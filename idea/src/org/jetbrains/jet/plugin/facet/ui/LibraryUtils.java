@@ -21,6 +21,7 @@ import com.intellij.openapi.module.Module;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ModuleRootManager;
 import com.intellij.openapi.roots.impl.libraries.ApplicationLibraryTable;
+import com.intellij.openapi.roots.impl.libraries.LibraryTableImplUtil;
 import com.intellij.openapi.roots.impl.libraries.ProjectLibraryTable;
 import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.libraries.LibraryTable;
@@ -49,8 +50,25 @@ public class LibraryUtils {
             case GLOBAL:
                 return LibraryTablesRegistrar.getInstance().getLibraryTable();
             default:
-                throw new InvalidParameterException("Unexpceted library level");
+                throw new InvalidParameterException("Unexpected library level");
         }
+    }
+
+    @NotNull
+    public static LibrariesContainer.LibraryLevel getLibraryLevel(@NotNull Library library) {
+        String level = library.getTable().getTableLevel();
+
+        if (LibraryTableImplUtil.MODULE_LEVEL.equals(level)) {
+            return LibrariesContainer.LibraryLevel.MODULE;
+        }
+        else if (LibraryTablesRegistrar.PROJECT_LEVEL.equals(level)) {
+            return LibrariesContainer.LibraryLevel.PROJECT;
+        }
+        else if (LibraryTablesRegistrar.APPLICATION_LEVEL.equals(level)) {
+            return LibrariesContainer.LibraryLevel.GLOBAL;
+        }
+
+        throw new InvalidParameterException("Unexpected library level");
     }
 
     protected static Collection<Library> getLibraries(Project project) {
