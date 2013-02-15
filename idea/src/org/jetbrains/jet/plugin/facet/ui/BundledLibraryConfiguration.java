@@ -23,17 +23,13 @@ import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.ui.configuration.libraryEditor.NewLibraryEditor;
 import com.intellij.openapi.roots.ui.configuration.projectRoot.LibrariesContainer;
 import com.intellij.openapi.roots.ui.configuration.projectRoot.LibrariesContainerFactory;
-import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.Computable;
-import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VfsUtil;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.PathUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.jet.utils.KotlinPaths;
 
-import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
 
@@ -78,7 +74,7 @@ public interface BundledLibraryConfiguration {
 
         @Override
         public Library createLibrary(
-                @NotNull Module module,
+                @NotNull final Module module,
                 @NotNull String libraryName,
                 @NotNull final LibrariesContainer.LibraryLevel level,
                 @NotNull final String destinationFolder
@@ -88,26 +84,12 @@ public interface BundledLibraryConfiguration {
                 throw new LibraryCreationException("Java Runtime library was not found. Make sure plugin is installed properly.");
             }
 
-            File folder = new File(destinationFolder);
-            File targetFile = new File(folder, runtimePath.getName());
-
+            File targetFile;
             try {
-                if (!targetFile.exists()) {
-                    FileUtil.copy(runtimePath, targetFile);
-                }
-                else {
-                    int replaceIfExist = Messages.showYesNoCancelDialog(
-                            String.format("File \"%s\" already exist in %s. Do you want to rewrite it?", targetFile.getName(),
-                                          folder.getAbsolutePath()),
-                            "Replace File", Messages.getWarningIcon());
-
-                    if (replaceIfExist == JOptionPane.YES_OPTION) {
-                        FileUtil.copy(runtimePath, targetFile);
-                    }
-                }
+                targetFile = CopyFileUtil.copyWithOverwriteDialog(destinationFolder, runtimePath);
             }
             catch (IOException e) {
-                throw new LibraryCreationException("Failed to copy file: " + e.getMessage());
+                throw new LibraryCreationException("Failed to copy Java Runtime jar file");
             }
 
             LocalFileSystem.getInstance().refreshAndFindFileByIoFile(targetFile);
@@ -117,12 +99,10 @@ public interface BundledLibraryConfiguration {
             editor.addRoot(VfsUtil.getUrlForLibraryRoot(targetFile), OrderRootType.CLASSES);
             editor.addRoot(VfsUtil.getUrlForLibraryRoot(targetFile) + "src", OrderRootType.SOURCES);
 
-            final LibrariesContainer container = LibrariesContainerFactory.createContainer(module);
-
             return ApplicationManager.getApplication().runWriteAction(new Computable<Library>() {
                 @Override
                 public Library compute() {
-                    return container.createLibrary(editor, level);
+                    return LibrariesContainerFactory.createContainer(module).createLibrary(editor, level);
                 }
             });
         }
@@ -150,9 +130,12 @@ public interface BundledLibraryConfiguration {
         }
 
         @Override
-        public Library createLibrary(@NotNull Module module, @NotNull String libraryName, @NotNull final LibrariesContainer.LibraryLevel level, @NotNull String destinationFolder)
-                throws LibraryCreationException {
-
+        public Library createLibrary(
+                @NotNull final Module module,
+                @NotNull String libraryName,
+                @NotNull final LibrariesContainer.LibraryLevel level,
+                @NotNull String destinationFolder
+        ) throws LibraryCreationException {
             KotlinPaths paths = org.jetbrains.jet.utils.PathUtil.getKotlinPathsForIdeaPlugin();
             File jsLibJarPath = paths.getJsLibJarPath();
 
@@ -160,43 +143,24 @@ public interface BundledLibraryConfiguration {
                 throw new LibraryCreationException("JavaScript library was not found. Make sure plugin is installed properly.");
             }
 
-            File folder = new File(destinationFolder);
-            File targetFile = new File(folder, jsLibJarPath.getName());
-
-            // TODO: create folder if it is not present yet
-            assert folder.exists();
-
+            File targetFile;
             try {
-                if (!targetFile.exists()) {
-                    FileUtil.copy(jsLibJarPath, targetFile);
-                }
-                else {
-                    int replaceIfExist = Messages.showYesNoCancelDialog(
-                            String.format("File \"%s\" already exist in %s. Do you want to rewrite it?", targetFile.getName(),
-                                          folder.getAbsolutePath()),
-                            "Replace File", Messages.getWarningIcon());
-
-                    if (replaceIfExist == JOptionPane.YES_OPTION) {
-                        FileUtil.copy(jsLibJarPath, targetFile);
-                    }
-                }
+                targetFile = CopyFileUtil.copyWithOverwriteDialog(destinationFolder, jsLibJarPath);
             }
             catch (IOException e) {
-                throw new LibraryCreationException("Failed to copy file: " + e.getMessage());
+                throw new LibraryCreationException("Failed to copy JavaScript library.");
             }
 
-            final VirtualFile libFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(targetFile);
+            LocalFileSystem.getInstance().refreshAndFindFileByIoFile(targetFile);
 
             final NewLibraryEditor editor = new NewLibraryEditor();
             editor.setName(libraryName);
-            editor.addRoot(libFile, OrderRootType.SOURCES);
-
-            final LibrariesContainer container = LibrariesContainerFactory.createContainer(module);
+            editor.addRoot(VfsUtil.getUrlForLibraryRoot(targetFile), OrderRootType.SOURCES);
 
             return ApplicationManager.getApplication().runWriteAction(new Computable<Library>() {
                 @Override
                 public Library compute() {
-                    return container.createLibrary(editor, level);
+                    return LibrariesContainerFactory.createContainer(module).createLibrary(editor, level);
                 }
             });
         }
