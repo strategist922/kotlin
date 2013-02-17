@@ -16,14 +16,10 @@
 
 package org.jetbrains.jet.plugin.facet.ui;
 
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.roots.OrderRootType;
-import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.ui.configuration.libraryEditor.NewLibraryEditor;
 import com.intellij.openapi.roots.ui.configuration.projectRoot.LibrariesContainer;
-import com.intellij.openapi.roots.ui.configuration.projectRoot.LibrariesContainerFactory;
-import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.util.PathUtil;
@@ -39,11 +35,7 @@ public interface BundledLibraryConfiguration {
     LibrariesContainer.LibraryLevel getDefaultLevel();
     String getDefaultCopyPath(@NotNull Module module);
 
-    Library createLibrary(
-            @NotNull Module module,
-            @NotNull String libraryName,
-            @NotNull LibrariesContainer.LibraryLevel level,
-            @NotNull String destinationFolder) throws LibraryCreationException;
+    NewLibraryEditor createNewLibraryEditor(@NotNull String libraryName, @NotNull String destinationFolder) throws LibraryCreationException;
 
     class LibraryCreationException extends Exception {
         public LibraryCreationException(String message) {
@@ -73,12 +65,7 @@ public interface BundledLibraryConfiguration {
         }
 
         @Override
-        public Library createLibrary(
-                @NotNull final Module module,
-                @NotNull String libraryName,
-                @NotNull final LibrariesContainer.LibraryLevel level,
-                @NotNull final String destinationFolder
-        ) throws LibraryCreationException {
+        public NewLibraryEditor createNewLibraryEditor(@NotNull String libraryName, @NotNull final String destinationFolder) throws LibraryCreationException {
             File runtimePath = org.jetbrains.jet.utils.PathUtil.getKotlinPathsForIdeaPlugin().getRuntimePath();
             if (!runtimePath.exists()) {
                 throw new LibraryCreationException("Java Runtime library was not found. Make sure plugin is installed properly.");
@@ -99,12 +86,7 @@ public interface BundledLibraryConfiguration {
             editor.addRoot(VfsUtil.getUrlForLibraryRoot(targetFile), OrderRootType.CLASSES);
             editor.addRoot(VfsUtil.getUrlForLibraryRoot(targetFile) + "src", OrderRootType.SOURCES);
 
-            return ApplicationManager.getApplication().runWriteAction(new Computable<Library>() {
-                @Override
-                public Library compute() {
-                    return LibrariesContainerFactory.createContainer(module).createLibrary(editor, level);
-                }
-            });
+            return editor;
         }
     };
 
@@ -130,12 +112,7 @@ public interface BundledLibraryConfiguration {
         }
 
         @Override
-        public Library createLibrary(
-                @NotNull final Module module,
-                @NotNull String libraryName,
-                @NotNull final LibrariesContainer.LibraryLevel level,
-                @NotNull String destinationFolder
-        ) throws LibraryCreationException {
+        public NewLibraryEditor createNewLibraryEditor(@NotNull String libraryName, @NotNull String destinationFolder) throws LibraryCreationException {
             KotlinPaths paths = org.jetbrains.jet.utils.PathUtil.getKotlinPathsForIdeaPlugin();
             File jsLibJarPath = paths.getJsLibJarPath();
 
@@ -157,12 +134,7 @@ public interface BundledLibraryConfiguration {
             editor.setName(libraryName);
             editor.addRoot(VfsUtil.getUrlForLibraryRoot(targetFile), OrderRootType.SOURCES);
 
-            return ApplicationManager.getApplication().runWriteAction(new Computable<Library>() {
-                @Override
-                public Library compute() {
-                    return LibrariesContainerFactory.createContainer(module).createLibrary(editor, level);
-                }
-            });
+            return editor;
         }
     };
 }

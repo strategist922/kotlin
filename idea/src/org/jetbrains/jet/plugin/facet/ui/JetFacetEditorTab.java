@@ -19,16 +19,18 @@ package org.jetbrains.jet.plugin.facet.ui;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
+import com.intellij.facet.impl.ui.ProjectConfigurableContext;
 import com.intellij.facet.ui.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileChooser.FileTypeDescriptor;
 import com.intellij.openapi.options.ConfigurationException;
-import com.intellij.openapi.roots.ModifiableRootModel;
-import com.intellij.openapi.roots.ModuleRootManager;
+import com.intellij.openapi.roots.impl.libraries.LibraryEx;
 import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.libraries.LibraryTable;
+import com.intellij.openapi.roots.ui.configuration.libraryEditor.NewLibraryEditor;
 import com.intellij.openapi.roots.ui.configuration.projectRoot.LibrariesContainer;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
+import com.intellij.openapi.util.Computable;
 import com.intellij.ui.ListCellRendererWrapper;
 import com.intellij.util.ArrayUtil;
 import org.jetbrains.annotations.Nls;
@@ -40,7 +42,9 @@ import org.jetbrains.jet.plugin.facet.JetFacetSettings;
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 public class JetFacetEditorTab extends FacetEditorTab {
     private final JetFacetSettings facetSettings;
@@ -105,10 +109,15 @@ public class JetFacetEditorTab extends FacetEditorTab {
         });
         bundledJsButton.addActionListener(new ActionListener() {
             @Override
-            public void actionPerformed(ActionEvent e) {
+            public void actionPerformed(@NotNull ActionEvent e) {
                 onBundleJsButtonClicked();
             }
         });
+    }
+
+    @Override
+    public void onTabEntering() {
+        reset();
     }
 
     private void onBundleJsButtonClicked() {
@@ -123,22 +132,31 @@ public class JetFacetEditorTab extends FacetEditorTab {
     }
 
     private void onCreateJavaRuntimeLibraryButtonClicked() {
-        CreateBundledLibraryDialog libraryDialog = new CreateBundledLibraryDialog(
-                editorContext.getModule(), BundledLibraryConfiguration.JAVA_RUNTIME_CONFIGURATION);
-        libraryDialog.show();
-
-        if (libraryDialog.isOK()) {
-            assert libraryDialog.getLibrary() != null : "Library should have been created";
-        }
+        showBundledDialog(BundledLibraryConfiguration.JAVA_RUNTIME_CONFIGURATION);
     }
 
     private void onCreateJSSourcesLibraryButtonClicked() {
-        CreateBundledLibraryDialog libraryDialog = new CreateBundledLibraryDialog(
-                editorContext.getModule(), BundledLibraryConfiguration.JAVASCRIPT_STDLIB_CONFIGURATION);
-        libraryDialog.show();
+        showBundledDialog(BundledLibraryConfiguration.JAVASCRIPT_STDLIB_CONFIGURATION);
+    }
 
-        if (libraryDialog.isOK()) {
-            assert libraryDialog.getLibrary() != null : "Library should have been created";
+    private void showBundledDialog(BundledLibraryConfiguration configuration) {
+        final CreateBundledLibraryDialog newLibraryDialog = new CreateBundledLibraryDialog(editorContext.getModule(), configuration);
+        newLibraryDialog.show();
+
+        if (newLibraryDialog.isOK()) {
+            final NewLibraryEditor libraryEditor = newLibraryDialog.getLibraryEditor();
+            assert libraryEditor != null : "Library editor should have been created";
+
+            ApplicationManager.getApplication().runWriteAction(new Computable<Library>() {
+                @Override
+                public Library compute() {
+                    Library library = ((ProjectConfigurableContext) editorContext).getContainer().createLibrary(libraryEditor, newLibraryDialog.getLibraryLevel());
+                    final Library.ModifiableModel model = library.getModifiableModel();
+                    libraryEditor.applyTo((LibraryEx.ModifiableModelEx) model);
+                    model.commit();
+                    return library;
+                }
+            });
         }
     }
 
@@ -209,30 +227,31 @@ public class JetFacetEditorTab extends FacetEditorTab {
 
     @Override
     public void apply() throws ConfigurationException {
+        // If apply is going to remove the library selected
+        reset();
+
         update(facetSettings);
 
-        if (facetSettings.isJavaModule()) {
-            final Library library = getSelectedRuntimeLibrary();
-
-            ApplicationManager.getApplication().runWriteAction(new Runnable() {
-                @Override
-                public void run() {
-                    ModifiableRootModel model = ModuleRootManager.getInstance(editorContext.getModule()).getModifiableModel();
-                    if (model.findLibraryOrderEntry(library) == null) {
-                        model.addLibraryEntry(library);
-                        model.commit();
-                    }
-                    else {
-                        model.dispose();
-                    }
-                }
-            });
-        }
-        else {
-            final Library library = getSelectedJSStandardLibrary();
-
-
-        }
+        //if (facetSettings.isJavaModule()) {
+        //    final Library library = getSelectedRuntimeLibrary();
+        //
+        //    ApplicationManager.getApplication().runWriteAction(new Runnable() {
+        //        @Override
+        //        public void run() {
+        //            ModifiableRootModel model = ModuleRootManager.getInstance(editorContext.getModule()).getModifiableModel();
+        //            if (model.findLibraryOrderEntry(library) == null) {
+        //                model.addLibraryEntry(library);
+        //                model.commit();
+        //            }
+        //            else {
+        //                model.dispose();
+        //            }
+        //        }
+        //    });
+        //}
+        //else {
+        //    final Library library = getSelectedJSStandardLibrary();
+        //}
     }
 
     @Override
@@ -250,7 +269,8 @@ public class JetFacetEditorTab extends FacetEditorTab {
 
         javaScriptRuntimeFileField.setText(facetSettings.getJsLibraryFolder());
 
-        Collection<Library> libraries = LibraryUtils.getLibraries(editorContext.getProject());
+        // Collection<Library> libraries = LibraryUtils.getLibraries(editorContext.getProject());
+        List<Library> libraries = Arrays.asList(getLibraries(editorContext));
 
         runtimeLibraryComboBox.setModel(
                 getModelForLibraries(libraries, facetSettings.getJavaRuntimeLibraryName(), facetSettings.getJavaRuntimeLibraryLevel()));
@@ -281,6 +301,10 @@ public class JetFacetEditorTab extends FacetEditorTab {
         }
 
         return javaRuntimeLibrariesModel;
+    }
+
+    private static Library[] getLibraries(FacetEditorContext context) {
+        return ((ProjectConfigurableContext) context).getContainer().getAllLibraries();
     }
 
     @Override

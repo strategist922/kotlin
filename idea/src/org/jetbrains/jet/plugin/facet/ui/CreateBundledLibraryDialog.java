@@ -18,8 +18,8 @@ package org.jetbrains.jet.plugin.facet.ui;
 
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import com.intellij.openapi.module.Module;
-import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.ui.configuration.libraryEditor.LibraryNameAndLevelPanel;
+import com.intellij.openapi.roots.ui.configuration.libraryEditor.NewLibraryEditor;
 import com.intellij.openapi.roots.ui.configuration.projectRoot.LibrariesContainer;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
@@ -40,7 +40,7 @@ public class CreateBundledLibraryDialog extends DialogWrapper {
     private TextFieldWithBrowseButton destinationFolder;
     private final FormBuilder myBuilder;
 
-    private Library library;
+    private NewLibraryEditor libraryEditor;
 
     public CreateBundledLibraryDialog(Module module, BundledLibraryConfiguration configuration) {
         super(module.getProject());
@@ -78,12 +78,10 @@ public class CreateBundledLibraryDialog extends DialogWrapper {
 
     @Override
     protected void doOKAction() {
-        LibrariesContainer.LibraryLevel libraryLevel = myNameAndLevelPanel.getLibraryLevel();
         String libraryName = myNameAndLevelPanel.getLibraryName();
 
         try {
-            library = configuration.createLibrary(module, libraryName, libraryLevel, getPath());
-            assert library != null : "Unknown error during library creation";
+            libraryEditor = configuration.createNewLibraryEditor(libraryName, getPath());
             super.doOKAction();
         }
         catch (BundledLibraryConfiguration.LibraryCreationException e) {
@@ -91,8 +89,13 @@ public class CreateBundledLibraryDialog extends DialogWrapper {
         }
     }
 
+    @NotNull
+    public LibrariesContainer.LibraryLevel getLibraryLevel() {
+        return myNameAndLevelPanel.getLibraryLevel();
+    }
+
     @Nullable
-    public Library getLibrary() {
-        return library;
+    public NewLibraryEditor getLibraryEditor() {
+        return libraryEditor;
     }
 }

@@ -18,12 +18,13 @@ package org.jetbrains.jet.plugin.facet;
 
 import com.intellij.facet.FacetManager;
 import com.intellij.facet.ModifiableFacetModel;
-import com.intellij.facet.impl.DefaultFacetsProvider;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.roots.libraries.Library;
-import com.intellij.openapi.roots.ui.configuration.libraries.AddCustomLibraryDialog;
+import com.intellij.openapi.roots.ui.configuration.libraryEditor.NewLibraryEditor;
 import com.intellij.openapi.roots.ui.configuration.projectRoot.LibrariesContainer;
+import com.intellij.openapi.roots.ui.configuration.projectRoot.LibrariesContainerFactory;
+import com.intellij.openapi.util.Computable;
 import org.jetbrains.jet.plugin.facet.ui.BundledLibraryConfiguration;
 import org.jetbrains.jet.plugin.facet.ui.CreateBundledLibraryDialog;
 
@@ -58,30 +59,48 @@ public class JetFacetInEditorConfigurator {
         return true;
     }
 
-    private static JetFacetSettings getSettingsForJavaConfiguration(Module module) {
+    private static JetFacetSettings getSettingsForJavaConfiguration(final Module module) {
         CreateBundledLibraryDialog libraryDialog = new CreateBundledLibraryDialog(module, BundledLibraryConfiguration.JAVA_RUNTIME_CONFIGURATION);
         libraryDialog.show();
 
         if (libraryDialog.isOK()) {
-            Library library = libraryDialog.getLibrary();
-            assert library != null : "Library should have been created";
+            final LibrariesContainer.LibraryLevel level = libraryDialog.getLibraryLevel();
 
-            return new JetFacetSettings(true, library.getName(), LibrariesContainer.LibraryLevel.PROJECT, null, null, null);
+            final NewLibraryEditor editor = libraryDialog.getLibraryEditor();
+            assert editor != null : "Library editor should have been created";
+
+            Library library = ApplicationManager.getApplication().runWriteAction(new Computable<Library>() {
+                @Override
+                public Library compute() {
+                    return LibrariesContainerFactory.createContainer(module).createLibrary(editor, level);
+                }
+            });
+
+            return new JetFacetSettings(true, library.getName(), level, null, null, null);
         }
 
         // Configuration was canceled
         return null;
     }
 
-    private static JetFacetSettings getSettingsForJavaScriptConfiguration(Module module) {
-        CreateBundledLibraryDialog libraryDialog = new CreateBundledLibraryDialog(module, BundledLibraryConfiguration.JAVA_RUNTIME_CONFIGURATION);
+    private static JetFacetSettings getSettingsForJavaScriptConfiguration(final Module module) {
+        CreateBundledLibraryDialog libraryDialog = new CreateBundledLibraryDialog(module, BundledLibraryConfiguration.JAVASCRIPT_STDLIB_CONFIGURATION);
         libraryDialog.show();
 
         if (libraryDialog.isOK()) {
-            Library library = libraryDialog.getLibrary();
-            assert library != null : "Library should have been created";
+            final LibrariesContainer.LibraryLevel level = libraryDialog.getLibraryLevel();
 
-            return new JetFacetSettings(true, library.getName(), LibrariesContainer.LibraryLevel.PROJECT, null, null, null);
+            final NewLibraryEditor editor = libraryDialog.getLibraryEditor();
+            assert editor != null : "Library editor should have been created";
+
+            Library library = ApplicationManager.getApplication().runWriteAction(new Computable<Library>() {
+                @Override
+                public Library compute() {
+                    return LibrariesContainerFactory.createContainer(module).createLibrary(editor, level);
+                }
+            });
+
+            return new JetFacetSettings(false, null, null, library.getName(), level, null);
         }
 
         // Configuration was canceled
