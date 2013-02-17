@@ -244,34 +244,45 @@ public class JetFacetEditorTab extends FacetEditorTab {
 
     @Override
     public void apply() throws ConfigurationException {
-        // TODO: If apply is going to remove the library selected
-        reset();
-
-
+        updateLibrariesSelectionForExternalChange();
         update(facetSettings);
     }
 
     @Override
     public boolean isModified() {
+        updateLibrariesSelectionForExternalChange();
+
         JetFacetSettings currentSettings = new JetFacetSettings();
         update(currentSettings);
 
         return !facetSettings.equals(currentSettings);
     }
 
-    @Override
-    public void reset() {
-        javaModuleRadioButton.setSelected(facetSettings.isJavaModule());
-        javaScriptModuleRadioButton.setSelected(!facetSettings.isJavaModule());
+    private void resetFromSettings(JetFacetSettings settings) {
+        javaModuleRadioButton.setSelected(settings.isJavaModule());
+        javaScriptModuleRadioButton.setSelected(!settings.isJavaModule());
 
-        javaScriptRuntimeFileField.setText(facetSettings.getJsLibraryFolder());
+        javaScriptRuntimeFileField.setText(settings.getJsLibraryFolder());
 
         runtimeLibraryComboBox.setModel(
-                getModelForLibraries(facetSettings.getJavaRuntimeLibraryName(), facetSettings.getJavaRuntimeLibraryLevel()));
+                getModelForLibraries(settings.getJavaRuntimeLibraryName(), settings.getJavaRuntimeLibraryLevel()));
         kotlinJSSourcesComboBox.setModel(
-                getModelForLibraries(facetSettings.getJsStdLibraryName(), facetSettings.getJsStdLibraryLevel()));
+                getModelForLibraries(settings.getJsStdLibraryName(), settings.getJsStdLibraryLevel()));
 
-        changeModuleTypeControls(facetSettings.isJavaModule());
+        changeModuleTypeControls(settings.isJavaModule());
+    }
+
+    private void updateLibrariesSelectionForExternalChange() {
+        JetFacetSettings currentSettings = new JetFacetSettings();
+        update(currentSettings);
+
+        // There could be already deleted libraries
+        resetFromSettings(currentSettings);
+    }
+
+    @Override
+    public void reset() {
+        resetFromSettings(facetSettings);
     }
 
     private DefaultComboBoxModel getModelForLibraries(
@@ -280,8 +291,9 @@ public class JetFacetEditorTab extends FacetEditorTab {
     ) {
         List<Library> libraries = Arrays.asList(getLibraries(editorContext));
 
-        DefaultComboBoxModel javaRuntimeLibrariesModel = new DefaultComboBoxModel(ArrayUtil.toObjectArray(libraries, Library.class));
-        javaRuntimeLibrariesModel.insertElementAt(null, 0);
+        DefaultComboBoxModel libraryModel = new DefaultComboBoxModel(ArrayUtil.toObjectArray(libraries, Library.class));
+        libraryModel.insertElementAt(null, 0);
+        libraryModel.setSelectedItem(null);
 
         if (libName != null && level != null) {
             final LibraryTable libraryTable = LibraryUtils.getLibraryTable(editorContext.getModule(), level);
@@ -295,11 +307,11 @@ public class JetFacetEditorTab extends FacetEditorTab {
             });
 
             if (runtimeLibrarySelected.isPresent()) {
-                javaRuntimeLibrariesModel.setSelectedItem(runtimeLibrarySelected.get());
+                libraryModel.setSelectedItem(runtimeLibrarySelected.get());
             }
         }
 
-        return javaRuntimeLibrariesModel;
+        return libraryModel;
     }
 
     private static Library[] getLibraries(FacetEditorContext context) {
