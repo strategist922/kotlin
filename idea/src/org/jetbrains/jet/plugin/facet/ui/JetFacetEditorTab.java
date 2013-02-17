@@ -43,12 +43,12 @@ import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 
 public class JetFacetEditorTab extends FacetEditorTab {
     private final JetFacetSettings facetSettings;
     private final FacetEditorContext editorContext;
+    private final FacetValidatorsManager validatorsManager;
     private JPanel mainPanel;
     private JRadioButton javaModuleRadioButton;
     private JRadioButton javaScriptModuleRadioButton;
@@ -62,6 +62,7 @@ public class JetFacetEditorTab extends FacetEditorTab {
     public JetFacetEditorTab(JetFacetSettings facetSettings, FacetEditorContext editorContext, FacetValidatorsManager validatorsManager) {
         this.facetSettings = facetSettings;
         this.editorContext = editorContext;
+        this.validatorsManager = validatorsManager;
 
         validatorsManager.registerValidator(new FacetEditorValidator() {
             @Override
@@ -132,14 +133,23 @@ public class JetFacetEditorTab extends FacetEditorTab {
     }
 
     private void onCreateJavaRuntimeLibraryButtonClicked() {
-        showBundledDialog(BundledLibraryConfiguration.JAVA_RUNTIME_CONFIGURATION);
+        ComboBoxModel model = createLibraryWithModuleUpdate(BundledLibraryConfiguration.JAVA_RUNTIME_CONFIGURATION);
+
+        if (model != null) {
+            runtimeLibraryComboBox.setModel(model);
+            validatorsManager.validate();
+        }
     }
 
     private void onCreateJSSourcesLibraryButtonClicked() {
-        showBundledDialog(BundledLibraryConfiguration.JAVASCRIPT_STDLIB_CONFIGURATION);
+        ComboBoxModel model = createLibraryWithModuleUpdate(BundledLibraryConfiguration.JAVASCRIPT_STDLIB_CONFIGURATION);
+        if (model != null) {
+            kotlinJSSourcesComboBox.setModel(model);
+            validatorsManager.validate();
+        }
     }
 
-    private void showBundledDialog(BundledLibraryConfiguration configuration) {
+    private ComboBoxModel createLibraryWithModuleUpdate(BundledLibraryConfiguration configuration) {
         final CreateBundledLibraryDialog newLibraryDialog = new CreateBundledLibraryDialog(editorContext.getModule(), configuration);
         newLibraryDialog.show();
 
@@ -147,17 +157,24 @@ public class JetFacetEditorTab extends FacetEditorTab {
             final NewLibraryEditor libraryEditor = newLibraryDialog.getLibraryEditor();
             assert libraryEditor != null : "Library editor should have been created";
 
-            ApplicationManager.getApplication().runWriteAction(new Computable<Library>() {
+            final LibrariesContainer.LibraryLevel level = newLibraryDialog.getLibraryLevel();
+
+            Library library = ApplicationManager.getApplication().runWriteAction(new Computable<Library>() {
                 @Override
                 public Library compute() {
-                    Library library = ((ProjectConfigurableContext) editorContext).getContainer().createLibrary(libraryEditor, newLibraryDialog.getLibraryLevel());
+                    Library library = ((ProjectConfigurableContext) editorContext).getContainer()
+                            .createLibrary(libraryEditor, level);
                     final Library.ModifiableModel model = library.getModifiableModel();
                     libraryEditor.applyTo((LibraryEx.ModifiableModelEx) model);
                     model.commit();
                     return library;
                 }
             });
+
+            return getModelForLibraries(library.getName(), level);
         }
+
+        return null;
     }
 
     private ValidationResult check() {
@@ -227,31 +244,11 @@ public class JetFacetEditorTab extends FacetEditorTab {
 
     @Override
     public void apply() throws ConfigurationException {
-        // If apply is going to remove the library selected
+        // TODO: If apply is going to remove the library selected
         reset();
 
-        update(facetSettings);
 
-        //if (facetSettings.isJavaModule()) {
-        //    final Library library = getSelectedRuntimeLibrary();
-        //
-        //    ApplicationManager.getApplication().runWriteAction(new Runnable() {
-        //        @Override
-        //        public void run() {
-        //            ModifiableRootModel model = ModuleRootManager.getInstance(editorContext.getModule()).getModifiableModel();
-        //            if (model.findLibraryOrderEntry(library) == null) {
-        //                model.addLibraryEntry(library);
-        //                model.commit();
-        //            }
-        //            else {
-        //                model.dispose();
-        //            }
-        //        }
-        //    });
-        //}
-        //else {
-        //    final Library library = getSelectedJSStandardLibrary();
-        //}
+        update(facetSettings);
     }
 
     @Override
@@ -269,18 +266,20 @@ public class JetFacetEditorTab extends FacetEditorTab {
 
         javaScriptRuntimeFileField.setText(facetSettings.getJsLibraryFolder());
 
-        // Collection<Library> libraries = LibraryUtils.getLibraries(editorContext.getProject());
-        List<Library> libraries = Arrays.asList(getLibraries(editorContext));
-
         runtimeLibraryComboBox.setModel(
-                getModelForLibraries(libraries, facetSettings.getJavaRuntimeLibraryName(), facetSettings.getJavaRuntimeLibraryLevel()));
+                getModelForLibraries(facetSettings.getJavaRuntimeLibraryName(), facetSettings.getJavaRuntimeLibraryLevel()));
         kotlinJSSourcesComboBox.setModel(
-                getModelForLibraries(libraries, facetSettings.getJsStdLibraryName(), facetSettings.getJsStdLibraryLevel()));
+                getModelForLibraries(facetSettings.getJsStdLibraryName(), facetSettings.getJsStdLibraryLevel()));
 
         changeModuleTypeControls(facetSettings.isJavaModule());
     }
 
-    private DefaultComboBoxModel getModelForLibraries(Collection<Library> libraries, @Nullable final String libName, @Nullable LibrariesContainer.LibraryLevel level) {
+    private DefaultComboBoxModel getModelForLibraries(
+            @Nullable final String libName,
+            @Nullable LibrariesContainer.LibraryLevel level
+    ) {
+        List<Library> libraries = Arrays.asList(getLibraries(editorContext));
+
         DefaultComboBoxModel javaRuntimeLibrariesModel = new DefaultComboBoxModel(ArrayUtil.toObjectArray(libraries, Library.class));
         javaRuntimeLibrariesModel.insertElementAt(null, 0);
 
