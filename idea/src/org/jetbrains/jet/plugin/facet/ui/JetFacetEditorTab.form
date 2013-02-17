@@ -57,7 +57,7 @@
               </component>
             </children>
           </grid>
-          <grid id="7d129" layout-manager="GridLayoutManager" row-count="2" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+          <grid id="7d129" layout-manager="GridLayoutManager" row-count="3" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
             <margin top="0" left="0" bottom="0" right="0"/>
             <constraints>
               <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="3" use-parent-layout="false"/>
@@ -90,17 +90,9 @@
               </component>
               <component id="5edd5" class="com.intellij.openapi.ui.TextFieldWithBrowseButton" binding="javaScriptRuntimeFileField">
                 <constraints>
-                  <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                  <grid row="1" column="1" row-span="1" col-span="2" vsize-policy="3" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties/>
-              </component>
-              <component id="151f7" class="javax.swing.JButton" binding="bundledJsButton" default-binding="true">
-                <constraints>
-                  <grid row="1" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties>
-                  <text value="Bundled..."/>
-                </properties>
               </component>
               <component id="4ac6e" class="javax.swing.JButton" binding="createJSSourcesLibraryButton">
                 <constraints>
@@ -108,6 +100,14 @@
                 </constraints>
                 <properties>
                   <text value="Cr&amp;eate..."/>
+                </properties>
+              </component>
+              <component id="151f7" class="javax.swing.JButton" binding="bundledJsButton" default-binding="true">
+                <constraints>
+                  <grid row="2" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                </constraints>
+                <properties>
+                  <text value="Copy bundled..."/>
                 </properties>
               </component>
             </children>

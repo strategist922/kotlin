@@ -136,5 +136,20 @@ public interface BundledLibraryConfiguration {
 
             return editor;
         }
+
+        public void copyBundledJavaScriptFile(@NotNull String destinationFolder) throws LibraryCreationException {
+            KotlinPaths paths = org.jetbrains.jet.utils.PathUtil.getKotlinPathsForIdeaPlugin();
+            File jsLibJsPath = paths.getJsLibJsPath();
+            if (!jsLibJsPath.exists()) {
+                throw new LibraryCreationException("JavaScript library not found. Make sure plugin is installed properly.");
+            }
+
+            try {
+                CopyFileUtil.copyWithOverwriteDialog(destinationFolder, jsLibJsPath);
+            }
+            catch (IOException e) {
+                throw new LibraryCreationException("Failed to copy JavaScript library.");
+            }
+        }
     };
 }

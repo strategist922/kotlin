@@ -19,6 +19,7 @@ package org.jetbrains.jet.plugin.facet.ui;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.openapi.vfs.LocalFileSystem;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.io.File;
@@ -28,7 +29,8 @@ public class CopyFileUtil {
     private CopyFileUtil() {
     }
 
-    public static File copyWithOverwriteDialog(String destinationFolder, File file) throws IOException {
+    @NotNull
+    public static File copyWithOverwriteDialog(@NotNull String destinationFolder, @NotNull File file) throws IOException {
         File folder = new File(destinationFolder);
         File targetFile = new File(folder, file.getName());
 
@@ -39,7 +41,7 @@ public class CopyFileUtil {
             FileUtil.copy(file, targetFile);
         }
         else {
-            int replaceIfExist = Messages.showYesNoCancelDialog(
+            int replaceIfExist = Messages.showYesNoDialog(
                     String.format("File \"%s\" already exist in %s. Do you want to rewrite it?", targetFile.getName(),
                                   folder.getAbsolutePath()),
                     "Replace File", Messages.getWarningIcon());

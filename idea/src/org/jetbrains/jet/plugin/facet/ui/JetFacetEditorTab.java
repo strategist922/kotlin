@@ -29,19 +29,25 @@ import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.libraries.LibraryTable;
 import com.intellij.openapi.roots.ui.configuration.libraryEditor.NewLibraryEditor;
 import com.intellij.openapi.roots.ui.configuration.projectRoot.LibrariesContainer;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.openapi.util.Computable;
+import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.ui.ListCellRendererWrapper;
 import com.intellij.util.ArrayUtil;
+import com.intellij.util.PathUtil;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.jet.plugin.JetLanguage;
 import org.jetbrains.jet.plugin.facet.JetFacetSettings;
+import org.jetbrains.jet.utils.KotlinPaths;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -92,9 +98,9 @@ public class JetFacetEditorTab extends FacetEditorTab {
         });
 
         javaScriptRuntimeFileField.addBrowseFolderListener(
-                "Copy Bundled JavaScript Runtime",
-                "Select folder to copy",
-                editorContext.getProject(), new FileTypeDescriptor("SomeTitle", "js"));
+                "Kotlin JavaScript Runtime",
+                "Select JavaScript kotlin runtime file",
+                editorContext.getProject(), new FileTypeDescriptor("Select JavaScript kotlin runtime file", "js"));
 
         createJavaRuntimeLibraryButton.addActionListener(new ActionListener() {
             @Override
@@ -123,12 +129,30 @@ public class JetFacetEditorTab extends FacetEditorTab {
 
     private void onBundleJsButtonClicked() {
         ChoosePathDialog dialog = new ChoosePathDialog(
-                editorContext.getProject(), "Copy Bundled JavaScript Runtime",
-                "lib");
+                editorContext.getProject(),
+                "Copy Bundled JavaScript Runtime",
+                PathUtil.getLocalPath(editorContext.getProject().getBaseDir()));
         dialog.show();
 
         if (dialog.isOK()) {
-            // TODO: Update everything
+            String copyToFolder = dialog.getPath();
+
+            KotlinPaths paths = org.jetbrains.jet.utils.PathUtil.getKotlinPathsForIdeaPlugin();
+            File jsLibJsPath = paths.getJsLibJsPath();
+            if (!jsLibJsPath.exists()) {
+                Messages.showErrorDialog("JavaScript library not found. Make sure plugin is installed properly.", "Copy Bundled JavaScript");
+            }
+
+            try {
+                File resultFile = CopyFileUtil.copyWithOverwriteDialog(copyToFolder, jsLibJsPath);
+                LocalFileSystem.getInstance().refreshAndFindFileByIoFile(resultFile);
+
+                javaScriptRuntimeFileField.setText(resultFile.getAbsolutePath());
+            }
+            catch (IOException e) {
+                Messages.showErrorDialog("Failed to copy file.", "Copy Bundled JavaScript");
+
+            }
         }
     }
 
@@ -189,10 +213,24 @@ public class JetFacetEditorTab extends FacetEditorTab {
             if (library == null) {
                 return new ValidationResult("Java Script Standard library isn't set");
             }
+
+            String jsRuntimePath = getJsRuntimePath();
+            if (jsRuntimePath != null) {
+                File file = new File(jsRuntimePath);
+                if (!(file.exists()) || !file.isFile()) {
+                    return new ValidationResult("Java Script runtime file wasn't found");
+                }
+            }
+            else {
+                return new ValidationResult("Java Script runtime file isn't set");
+            }
+
         }
 
         return ValidationResult.OK;
     }
+
+
 
     private void changeModuleTypeControls(boolean isJavaModule) {
         runtimeLibraryComboBox.setEnabled(isJavaModule);
@@ -228,6 +266,15 @@ public class JetFacetEditorTab extends FacetEditorTab {
 
     private Library getSelectedJSStandardLibrary() {
         return (Library) kotlinJSSourcesComboBox.getSelectedItem();
+    }
+
+    @Nullable
+    private String getJsRuntimePath() {
+        String jsRuntimePath = javaScriptRuntimeFileField.getText().trim();
+        if (jsRuntimePath.length() == 0) {
+            jsRuntimePath = null;
+        }
+        return jsRuntimePath;
     }
 
     @Nls

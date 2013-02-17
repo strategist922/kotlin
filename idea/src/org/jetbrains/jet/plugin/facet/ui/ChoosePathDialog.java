@@ -16,6 +16,7 @@
 
 package org.jetbrains.jet.plugin.facet.ui;
 
+import com.intellij.ide.util.projectWizard.ProjectWizardUtil;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import com.intellij.openapi.fileChooser.FileChooserFactory;
@@ -57,8 +58,15 @@ class ChoosePathDialog extends DialogWrapper {
         return myPathField;
     }
 
+    @Override
+    protected void doOKAction() {
+        if (ProjectWizardUtil.createDirectoryIfNotExists("Destination folder", getPath(), false)) {
+            super.doOKAction();
+        }
+    }
+
     @NotNull
     public String getPath() {
-        return myPathField.getText();
+        return myPathField.getText().trim();
     }
 }
