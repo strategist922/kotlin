@@ -17,13 +17,15 @@
 package org.jetbrains.jet.plugin.intentions;
 
 import com.intellij.codeInsight.intention.PsiElementBaseIntentionAction;
-import com.intellij.lang.ASTNode;
+import com.intellij.codeInsight.template.TemplateBuilder;
+import com.intellij.codeInsight.template.TemplateBuilderFactory;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
+import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiWhiteSpace;
 import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.refactoring.rename.inplace.MyLookupExpression;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.jet.JetNodeTypes;
@@ -32,15 +34,13 @@ import org.jetbrains.jet.lang.diagnostics.Diagnostic;
 import org.jetbrains.jet.lang.diagnostics.Errors;
 import org.jetbrains.jet.lang.psi.*;
 import org.jetbrains.jet.lang.resolve.BindingContext;
-import org.jetbrains.jet.lang.resolve.DescriptorUtils;
-import org.jetbrains.jet.lang.types.ErrorUtils;
-import org.jetbrains.jet.lang.types.JetType;
+import org.jetbrains.jet.lang.types.*;
 import org.jetbrains.jet.plugin.JetBundle;
 import org.jetbrains.jet.plugin.codeInsight.ReferenceToClassesShortening;
 import org.jetbrains.jet.plugin.project.AnalyzeSingleFileUtil;
 import org.jetbrains.jet.renderer.DescriptorRenderer;
 
-import java.util.Collections;
+import java.util.*;
 
 public class SpecifyTypeExplicitlyAction extends PsiElementBaseIntentionAction {
     @NotNull
@@ -61,7 +61,7 @@ public class SpecifyTypeExplicitlyAction extends PsiElementBaseIntentionAction {
         if (parent instanceof JetProperty) {
             JetProperty property = (JetProperty) parent;
             if (property.getTypeRef() == null) {
-                addTypeAnnotation(project, property, type);
+                addTypeAnnotation(project, editor, property, type);
             }
             else {
                 removeTypeAnnotation(property);
@@ -70,7 +70,7 @@ public class SpecifyTypeExplicitlyAction extends PsiElementBaseIntentionAction {
         else if (parent instanceof JetParameter) {
             JetParameter parameter = (JetParameter) parent;
             if (parameter.getTypeReference() == null) {
-                addTypeAnnotation(project, parameter, type);
+                addTypeAnnotation(project, editor, parameter, type);
             }
             else {
                 removeTypeAnnotation(parameter);
@@ -79,7 +79,7 @@ public class SpecifyTypeExplicitlyAction extends PsiElementBaseIntentionAction {
         else if (parent instanceof JetNamedFunction) {
             JetNamedFunction function = (JetNamedFunction) parent;
             assert function.getReturnTypeRef() == null;
-            addTypeAnnotation(project, function, type);
+            addTypeAnnotation(project, editor, function, type);
         }
         else {
             throw new IllegalStateException("Unexpected parent: " + parent);
@@ -160,59 +160,76 @@ public class SpecifyTypeExplicitlyAction extends PsiElementBaseIntentionAction {
         return type == null ? ErrorUtils.createErrorType("null type") : type;
     }
 
-    public static void addTypeAnnotation(Project project, JetProperty property, @NotNull JetType exprType) {
-        if (property.getTypeRef() != null) return;
+    public static void addTypeAnnotation(
+            Project project,
+            Editor editor,
+            final JetProperty property,
+            @NotNull JetType exprType
+    ) {
+        if (property.getTypeRef() != null) {
+            return;
+        }
+
         PsiElement anchor = property.getNameIdentifier();
-        if (anchor == null) return;
-        anchor = anchor.getNextSibling();
-        if (anchor != null) {
-            if (!(anchor instanceof PsiWhiteSpace)) {
-                return;
-            }
-        }
-
-        // For enum entry expression, we want type "MyEntry" instead of "MyEntry.<class-object>.ENTRY1"
-        ClassifierDescriptor typeClassifier = exprType.getConstructor().getDeclarationDescriptor();
-        assert typeClassifier != null;
-        if (DescriptorUtils.isEnumEntry(typeClassifier)) {
-            ClassDescriptor enumClass = (ClassDescriptor) typeClassifier.getContainingDeclaration().getContainingDeclaration();
-            assert enumClass != null;
-            exprType = enumClass.getDefaultType();
-        }
-
-        JetTypeReference typeReference = JetPsiFactory.createType(project, DescriptorRenderer.TEXT.renderType(exprType));
-        ASTNode colon = JetPsiFactory.createColonNode(project);
-        ASTNode anchorNode = anchor == null ? null : anchor.getNode().getTreeNext();
         if (anchor == null) {
-            property.getNode().addChild(JetPsiFactory.createWhiteSpace(project).getNode(), anchorNode);
+            return;
         }
-        property.getNode().addChild(colon, anchorNode);
-        property.getNode().addChild(JetPsiFactory.createWhiteSpace(project).getNode(), anchorNode);
-        property.getNode().addChild(typeReference.getNode(), anchorNode);
-        property.getNode().addChild(JetPsiFactory.createWhiteSpace(project).getNode(), anchorNode);
-        if (anchor != null) {
-            anchor.delete();
-        }
-        ReferenceToClassesShortening.compactReferenceToClasses(Collections.singletonList(property));
+
+        addTypeAnnotation(project, editor, property, anchor, exprType);
     }
 
-    public static void addTypeAnnotation(Project project, JetFunction function, @NotNull JetType exprType) {
-        JetTypeReference typeReference = JetPsiFactory.createType(project, DescriptorRenderer.TEXT.renderType(exprType));
-        Pair<PsiElement, PsiElement> colon = JetPsiFactory.createColon(project);
+    public static void addTypeAnnotation(Project project, Editor editor, JetFunction function, @NotNull JetType exprType) {
         JetParameterList valueParameterList = function.getValueParameterList();
         assert valueParameterList != null;
-        function.addAfter(typeReference, valueParameterList);
-        function.addRangeAfter(colon.getFirst(), colon.getSecond(), valueParameterList);
-        ReferenceToClassesShortening.compactReferenceToClasses(Collections.singletonList(function));
+        addTypeAnnotation(project, editor, function, valueParameterList, exprType);
     }
 
-    public static void addTypeAnnotation(Project project, JetParameter parameter, @NotNull JetType exprType) {
+    public static void addTypeAnnotation(Project project, Editor editor, JetParameter parameter, @NotNull JetType exprType) {
+        addTypeAnnotation(project, null, parameter, parameter.getNameIdentifier(), exprType);
+    }
+
+    private static void addTypeAnnotation(
+            Project project,
+            Editor editor,
+            JetNamedDeclaration namedDeclaration,
+            PsiElement anchor,
+            @NotNull JetType exprType
+    ) {
+        LinkedHashSet<String> possibleTypes = new LinkedHashSet<String>();
+        TypeConstructor constructor = exprType.getConstructor();
+        ClassifierDescriptor classifierDescriptor = constructor.getDeclarationDescriptor();
+        if (classifierDescriptor != null && classifierDescriptor.getName().isSpecial()) {
+            Collection<JetType> supertypes = constructor.getSupertypes();
+
+            Iterator<JetType> iterator = supertypes.iterator();
+            JetType defaultExprType = iterator.next();
+            possibleTypes.add(DescriptorRenderer.SHORT_NAMES_IN_TYPES.renderType(defaultExprType));
+            while (iterator.hasNext()) {
+                JetType type = iterator.next();
+                possibleTypes.add(DescriptorRenderer.SHORT_NAMES_IN_TYPES.renderType(type));
+            }
+
+            exprType = defaultExprType;
+        }
+
         JetTypeReference typeReference = JetPsiFactory.createType(project, DescriptorRenderer.TEXT.renderType(exprType));
         Pair<PsiElement, PsiElement> colon = JetPsiFactory.createColon(project);
-        parameter.addAfter(typeReference, parameter.getNameIdentifier());
-        parameter.addRangeAfter(colon.getFirst(), colon.getSecond(), parameter.getNameIdentifier());
-        ReferenceToClassesShortening.compactReferenceToClasses(Collections.singletonList(parameter));
+        PsiElement newType = namedDeclaration.addAfter(typeReference, anchor);
+        namedDeclaration.addRangeAfter(colon.getFirst(), colon.getSecond(), anchor);
+        ReferenceToClassesShortening.compactReferenceToClasses(Collections.singletonList(namedDeclaration));
+
+        //show additional lookup for all possible types
+        if (!possibleTypes.isEmpty() && newType != null) {
+            JetTypeElement typeElement = typeReference.getTypeElement();
+            if (typeElement != null ) {
+                PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(editor.getDocument());
+                TemplateBuilder builder = TemplateBuilderFactory.getInstance().createTemplateBuilder(newType);
+                builder.replaceElement(newType, new MyLookupExpression(newType.getText(), possibleTypes, null, false, "Specify type"));
+                builder.run(editor, true);
+            }
+        }
     }
+
 
     private static void removeTypeAnnotation(@NotNull JetNamedDeclaration property, @Nullable JetTypeReference typeReference) {
         if (typeReference == null) return;
