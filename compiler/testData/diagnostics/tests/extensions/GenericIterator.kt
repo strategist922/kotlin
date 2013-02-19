@@ -6,12 +6,12 @@ inline fun <T> java.util.Enumeration<T>.iterator() = object: Iterator<T> {
   override fun next() = nextElement()
 }
 
-fun <T : Any> T?.iterator() = object {
+fun <T : Any> T?.iterator() = object : Iterator<T> {
     var hasNext = this@iterator != null
       private set
-    fun hasNext() = hasNext
+    override fun hasNext() = hasNext
 
-    fun next() : T {
+    override fun next() : T {
         if (hasNext) {
             hasNext = false
             return this@iterator!!
@@ -26,3 +26,4 @@ fun main(args : Array<String>) {
     System.out.println(x)
   }
 }
+
