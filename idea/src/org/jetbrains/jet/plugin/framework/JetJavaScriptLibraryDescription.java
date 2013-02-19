@@ -40,7 +40,7 @@ import java.io.IOException;
 import java.util.Set;
 
 public class JetJavaScriptLibraryDescription extends CustomLibraryDescription {
-    public static final LibraryKind KOTLIN_JAVASCRIPT_KIND = LibraryKind.create("JetJavaScriptLibraryDescription");
+    public static final LibraryKind KOTLIN_JAVASCRIPT_HEADERS_KIND = LibraryKind.create("JetJavaScriptLibraryDescription");
 
     private final FrameworkSourcePanel configurationPanel;
 
@@ -51,7 +51,7 @@ public class JetJavaScriptLibraryDescription extends CustomLibraryDescription {
     @NotNull
     @Override
     public Set<? extends LibraryKind> getSuitableLibraryKinds() {
-        return Sets.newHashSet(KOTLIN_JAVASCRIPT_KIND);
+        return Sets.newHashSet(KOTLIN_JAVASCRIPT_HEADERS_KIND);
     }
 
     @Nullable
