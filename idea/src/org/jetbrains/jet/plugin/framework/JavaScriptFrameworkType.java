@@ -26,6 +26,10 @@ import javax.swing.*;
 public class JavaScriptFrameworkType extends FrameworkTypeEx {
     public static final String JAVASCRIPT_FRAMEWORK_TYPE_ID = JavaScriptFrameworkType.class.getName() + "_id";
 
+    public static JavaScriptFrameworkType getInstance() {
+        return FrameworkTypeEx.EP_NAME.findExtension(JavaScriptFrameworkType.class);
+    }
+
     public JavaScriptFrameworkType() {
         super(JAVASCRIPT_FRAMEWORK_TYPE_ID);
     }

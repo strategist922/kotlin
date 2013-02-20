@@ -26,6 +26,10 @@ import javax.swing.*;
 public class JetJavaFrameworkType extends FrameworkTypeEx {
     public static final String JAVA_FRAMEWORK_TYPE_ID = JetJavaFrameworkType.class.getName() + "_id";
 
+    public static JetJavaFrameworkType getInstance() {
+        return FrameworkTypeEx.EP_NAME.findExtension(JetJavaFrameworkType.class);
+    }
+
     public JetJavaFrameworkType() {
         super(JAVA_FRAMEWORK_TYPE_ID);
     }
