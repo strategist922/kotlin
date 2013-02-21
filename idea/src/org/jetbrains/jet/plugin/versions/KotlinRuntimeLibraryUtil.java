@@ -20,6 +20,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
+import com.intellij.facet.impl.DefaultFacetsProvider;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.project.Project;
@@ -60,6 +61,8 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
+
+import static org.jetbrains.jet.plugin.project.JsModuleDetector.isJsModule;
 
 public class KotlinRuntimeLibraryUtil {
     public static final String LIBRARY_NAME = "KotlinRuntime";
@@ -135,13 +138,20 @@ public class KotlinRuntimeLibraryUtil {
     }
 
     public static boolean isModuleAlreadyConfigured(Module module) {
-        return isMavenModule(module);
+        return isMavenModule(module) || isJsModule(module) || isWithJavaModule(module);
     }
 
     private static boolean isMavenModule(@NotNull Module module) {
         // This constant could be acquired from MavenProjectsManager, but we don't want to depend on the Maven plugin...
         // See MavenProjectsManager.isMavenizedModule()
         return "true".equals(module.getOptionValue("org.jetbrains.idea.maven.project.MavenProjectsManager.isMavenModule"));
+    }
+
+    private static boolean isWithJavaModule(Module module) {
+        // Can find a reference to kotlin class in module scope
+        GlobalSearchScope scope = module.getModuleWithDependenciesAndLibrariesScope(false);
+
+        return getKotlinRuntimeMarkerClass(scope) != null;
     }
 
     @Nullable
@@ -179,45 +189,6 @@ public class KotlinRuntimeLibraryUtil {
 
         return false;
     }
-
-    //@Nullable
-    //public static Library createRuntimeLibrary(final LibraryTable table, @NotNull final String libName, FindRuntimeLibraryHandler handler) {
-    //    File runtimePath = PathUtil.getKotlinPathsForIdeaPlugin().getRuntimePath();
-    //    if (!runtimePath.exists()) {
-    //        handler.runtimePathDoesNotExist(runtimePath);
-    //        return null;
-    //    }
-    //
-    //    final File targetJar = handler.getRuntimeJarPath();
-    //    if (targetJar == null) return null;
-    //    try {
-    //        FileUtil.copy(runtimePath, targetJar);
-    //        VirtualFile jarVfs = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(targetJar);
-    //        if (jarVfs != null) {
-    //            jarVfs.refresh(false, false);
-    //        }
-    //    }
-    //    catch (IOException e) {
-    //        handler.ioExceptionOnCopyingJar(e);
-    //        return null;
-    //    }
-    //
-    //
-    //    return ApplicationManager.getApplication().runWriteAction(new Computable<Library>() {
-    //        @Override
-    //        public Library compute() {
-    //            LibraryTableBase.ModifiableModel modifiableModel = table.getModifiableModel();
-    //            final String name = getUniqueLibraryName(libName, modifiableModel);
-    //            Library library = modifiableModel.createLibrary(name);
-    //            final LibraryEx.ModifiableModelEx model = (LibraryEx.ModifiableModelEx)library.getModifiableModel();
-    //            model.addRoot(VfsUtil.getUrlForLibraryRoot(targetJar), OrderRootType.CLASSES);
-    //            model.addRoot(VfsUtil.getUrlForLibraryRoot(targetJar) + "src", OrderRootType.SOURCES);
-    //            model.commit();
-    //            modifiableModel.commit();
-    //            return library;
-    //        }
-    //    });
-    //}
 
     private static String getUniqueLibraryName(final String baseName, final LibraryTable.ModifiableModel model) {
         return UniqueNameGenerator.generateUniqueName(baseName, "", "", " (", ")", new Condition<String>() {
@@ -292,15 +263,4 @@ public class KotlinRuntimeLibraryUtil {
         }
         return kotlinRuntimeJar;
     }
-
-    //public static abstract class FindRuntimeLibraryHandler {
-    //    @Nullable
-    //    public abstract File getRuntimeJarPath();
-    //
-    //    public void runtimePathDoesNotExist(@NotNull File path) {
-    //    }
-    //
-    //    public void ioExceptionOnCopyingJar(@NotNull IOException e) {
-    //    }
-    //}
 }
