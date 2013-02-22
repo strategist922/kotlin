@@ -212,24 +212,28 @@
             <classpath refid="classpath"/>
         </javac>
 
-        <jar jarfile="${output}/kotlin-compiler-before-jarjar.jar">
+        <jar jarfile="${output}/kotlin-compiler-before-shrink.jar">
           <fileset dir="${output}/classes/compiler"/>
           <fileset dir="${basedir}/compiler/frontend/src" includes="jet/**"/>
 
           <zipgroupfileset dir="${basedir}/lib" includes="*.jar"/>
-          <zipgroupfileset dir="${basedir}/ideaSDK/core" includes="*.jar"/>
+          <zipgroupfileset dir="${basedir}/ideaSDK/core" includes="*.jar" excludes="util.jar"/>
           <zipgroupfileset dir="${basedir}/ideaSDK/lib" includes="jna-utils.jar"/>
           <zipgroupfileset dir="${basedir}/ideaSDK/lib" includes="oromatcher.jar"/>
           <zipgroupfileset dir="${basedir}/js/js.translator/lib" includes="*.jar"/>
           <zipgroupfileset dir="${basedir}/dependencies" includes="jline.jar"/>
-          <zipgroupfileset dir="${basedir}/dependencies" includes="jetbrains-asm-util-4.0.jar"/>
           <zipgroupfileset dir="${basedir}/dependencies" includes="jetbrains-asm-analysis-4.0.jar"/>
-        </jar>
 
-        <jarjar-for-kotlin inputJar="${output}/kotlin-compiler-before-jarjar.jar"
-                           outputJar="${output}/kotlin-compiler-jarjar.jar"
-                           jarDescription="Kotlin Compiler"
-                           mainClass="org.jetbrains.jet.cli.jvm.K2JVMCompiler"/>
+          <manifest>
+            <attribute name="Built-By" value="JetBrains"/>
+
+            <attribute name="Implementation-Vendor" value="JetBrains"/>
+            <attribute name="Implementation-Title" value="Kotlin Compiler"/>
+            <attribute name="Implementation-Version" value="${build.number}"/>
+
+            <attribute name="Main-Class" value="org.jetbrains.jet.cli.jvm.K2JVMCompiler"/>
+          </manifest>
+        </jar>
 
         <delete file="${kotlin-home}/lib/kotlin-compiler.jar" failonerror="false"/>
 
@@ -237,36 +241,35 @@
             <isfalse value="${shrink}"/>
 
             <then>
-                <copy file="${output}/kotlin-compiler-jarjar.jar"
+                <copy file="${output}/kotlin-compiler-before-shrink.jar"
                       tofile="${kotlin-home}/lib/kotlin-compiler.jar"/>
             </then>
 
             <else>
-                <cleandir dir="${output}/kotlin-compiler.exploded"/>
-                <unzip src="${output}/kotlin-compiler-jarjar.jar" dest="${output}/kotlin-compiler.exploded"/>
-
-                <!-- Clean JarJar result -->
-                <jar jarfile="${output}/kotlin-compiler-before-proguard.jar"
-                     manifest="${output}/kotlin-compiler.exploded/META-INF/MANIFEST.MF">
-
-                    <fileset dir="${output}/kotlin-compiler.exploded">
-                        <include name="**/*.class"/>
-                        <include name="**/*.properties"/>
-                        <include name="**/*.jet"/>
-                        <include name="**/*.kt"/>
-                        <include name="META-INF/services/**"/>
-                        <include name="META-INF/native/**"/>
-                        <include name="messages/**"/>
-                    </fileset>
-                    <zipfileset file="${kotlin-home}/build.txt" prefix="META-INF"/>
-                </jar>
-                <delete dir="${output}/kotlin-compiler.exploded"/>
-
                 <available property="rtjar" value="${java.home}/lib/rt.jar" file="${java.home}/lib/rt.jar"/>
                 <available property="rtjar" value="${java.home}/../Classes/classes.jar" file="${java.home}/../Classes/classes.jar"/>
 
                 <proguard><![CDATA[
-                    -injars '${output}/kotlin-compiler-before-proguard.jar'
+                    -injars '${output}/kotlin-compiler-before-shrink.jar'(!com/thoughtworks/xstream/converters/extended/ISO8601**,
+                    !com/thoughtworks/xstream/converters/reflection/CGLIBEnhancedConverter**,
+                    !com/thoughtworks/xstream/io/xml/Dom4J**,
+                    !com/thoughtworks/xstream/io/xml/Xom**,
+                    !com/thoughtworks/xstream/io/xml/Wstx**,
+                    !com/thoughtworks/xstream/io/xml/KXml2**,
+                    !com/thoughtworks/xstream/io/xml/BEAStax**,
+                    !com/thoughtworks/xstream/io/json/Jettison**,
+                    !com/thoughtworks/xstream/mapper/CGLIBMapper**,
+                    !org/apache/log4j/jmx/Agent*,
+                    !org/apache/log4j/net/JMS*,
+                    !org/apache/log4j/net/SMTP*,
+                    !org/apache/log4j/or/jms/MessageRenderer*,
+                    !org/jdom/xpath/Jaxen*,
+                    !org/mozilla/javascript/xml/impl/xmlbeans/**,
+                    !META-INF/maven**,
+                    **.class,**.properties,**.jet,**.kt,
+                    META-INF/services/**,META-INF/native/**,META-INF/MANIFEST.MF,
+                    messages/**)
+
                     -outjars '${kotlin-home}/lib/kotlin-compiler.jar'
 
                     -dontwarn com.intellij.util.ui.IsRetina*
