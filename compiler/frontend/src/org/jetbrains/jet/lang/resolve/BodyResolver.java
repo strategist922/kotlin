@@ -23,6 +23,8 @@ import com.intellij.util.containers.Queue;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.jet.lang.descriptors.*;
+import org.jetbrains.jet.lang.descriptors.impl.FunctionDescriptorUtil;
+import org.jetbrains.jet.lang.descriptors.impl.MutableClassDescriptor;
 import org.jetbrains.jet.lang.psi.*;
 import org.jetbrains.jet.lang.resolve.calls.util.CallMaker;
 import org.jetbrains.jet.lang.resolve.calls.CallResolver;
@@ -244,18 +246,7 @@ public class BodyResolver {
                 if (classDescriptor == null) return;
                 if (descriptor.getKind() != ClassKind.TRAIT && !classDescriptor.getConstructors().isEmpty() &&
                     !ErrorUtils.isError(classDescriptor.getTypeConstructor()) && classDescriptor.getKind() != ClassKind.TRAIT) {
-                    boolean hasConstructorWithoutParams = false;
-                    for (ConstructorDescriptor constructor : classDescriptor.getConstructors()) {
-                        if (constructor.getValueParameters().isEmpty()) {
-                            hasConstructorWithoutParams = true;
-                        }
-                    }
-                    if (!hasConstructorWithoutParams) {
-                        trace.report(SUPERTYPE_NOT_INITIALIZED.on(specifier));
-                    }
-                    else {
-                        trace.report(SUPERTYPE_NOT_INITIALIZED_DEFAULT.on(specifier));
-                    }
+                    trace.report(SUPERTYPE_NOT_INITIALIZED.on(specifier));
                 }
             }
 
