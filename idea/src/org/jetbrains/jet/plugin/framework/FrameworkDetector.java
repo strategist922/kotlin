@@ -107,9 +107,10 @@ public class FrameworkDetector {
             @Override
             public Library compute() {
                 for (Library library : getJavaScriptHeadersLibraries(module)) {
-                    String libraryName = library.getName();
-                    if (libraryName != null && libraryName.contains(PathUtil.JS_LIB_JAR_NAME)) {
-                        return library;
+                    for (VirtualFile file : library.getFiles(OrderRootType.SOURCES)) {
+                        if (file.getName().equals(PathUtil.JS_LIB_JAR_NAME)) {
+                            return library;
+                        }
                     }
                 }
                 return null;
