@@ -23,21 +23,21 @@ import org.jetbrains.jet.plugin.JetIcons;
 
 import javax.swing.*;
 
-public class JetJavaFrameworkType extends FrameworkTypeEx {
-    public static final String JAVA_FRAMEWORK_TYPE_ID = JetJavaFrameworkType.class.getName() + "_id";
+public class JavaFrameworkType extends FrameworkTypeEx {
+    public static final String JAVA_FRAMEWORK_TYPE_ID = JavaFrameworkType.class.getName() + "_id";
 
-    public static JetJavaFrameworkType getInstance() {
-        return FrameworkTypeEx.EP_NAME.findExtension(JetJavaFrameworkType.class);
+    public static JavaFrameworkType getInstance() {
+        return FrameworkTypeEx.EP_NAME.findExtension(JavaFrameworkType.class);
     }
 
-    public JetJavaFrameworkType() {
+    public JavaFrameworkType() {
         super(JAVA_FRAMEWORK_TYPE_ID);
     }
 
     @NotNull
     @Override
     public FrameworkSupportInModuleProvider createProvider() {
-        return new JetJavaFrameworkSupportProvider();
+        return new JavaFrameworkSupportProvider();
     }
 
     @NotNull
