@@ -25,16 +25,16 @@ import com.intellij.openapi.module.Module;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.projectRoots.Sdk;
 import com.intellij.openapi.projectRoots.SdkModificator;
-import com.intellij.openapi.roots.*;
-import com.intellij.openapi.roots.impl.libraries.ProjectLibraryTable;
+import com.intellij.openapi.roots.AnnotationOrderRootType;
+import com.intellij.openapi.roots.ModuleRootManager;
+import com.intellij.openapi.roots.OrderRootType;
+import com.intellij.openapi.roots.ProjectFileIndex;
 import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.libraries.LibraryTable;
-import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Condition;
 import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.openapi.vfs.JarFileSystem;
 import com.intellij.openapi.vfs.LocalFileSystem;
-import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.packaging.impl.elements.ManifestFileUtil;
 import com.intellij.psi.JavaPsiFacade;
@@ -45,6 +45,7 @@ import com.intellij.util.Processor;
 import com.intellij.util.containers.ContainerUtil;
 import com.intellij.util.indexing.FileBasedIndex;
 import com.intellij.util.indexing.ID;
+import com.intellij.util.text.UniqueNameGenerator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.jet.lang.resolve.java.AbiVersionUtil;
@@ -55,11 +56,10 @@ import org.jetbrains.jet.utils.PathUtil;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.Collection;
+import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
-
-import static org.jetbrains.jet.plugin.project.JsModuleDetector.isJsModule;
 
 public class KotlinRuntimeLibraryUtil {
     public static final String LIBRARY_NAME = "KotlinRuntime";
@@ -135,20 +135,13 @@ public class KotlinRuntimeLibraryUtil {
     }
 
     public static boolean isModuleAlreadyConfigured(Module module) {
-        return isMavenModule(module) || isJsModule(module) || isWithJavaModule(module);
+        return isMavenModule(module);
     }
 
     private static boolean isMavenModule(@NotNull Module module) {
         // This constant could be acquired from MavenProjectsManager, but we don't want to depend on the Maven plugin...
         // See MavenProjectsManager.isMavenizedModule()
         return "true".equals(module.getOptionValue("org.jetbrains.idea.maven.project.MavenProjectsManager.isMavenModule"));
-    }
-
-    private static boolean isWithJavaModule(Module module) {
-        // Can find a reference to kotlin class in module scope
-        GlobalSearchScope scope = module.getModuleWithDependenciesAndLibrariesScope(false);
-
-        return getKotlinRuntimeMarkerClass(scope) != null;
     }
 
     @Nullable
@@ -173,76 +166,64 @@ public class KotlinRuntimeLibraryUtil {
         return null;
     }
 
-    static void setUpKotlinRuntimeLibrary(
-            @NotNull final Module module,
-            @NotNull final Library library,
-            @NotNull final Runnable afterSetUp
-    ) {
-        ApplicationManager.getApplication().runWriteAction(new Runnable() {
-            @Override
-            public void run() {
-                ModifiableRootModel model = ModuleRootManager.getInstance(module).getModifiableModel();
-                if (model.findLibraryOrderEntry(library) == null) {
-                    model.addLibraryEntry(library);
-                    model.commit();
-                }
-                else {
-                    model.dispose();
-                }
+    public static boolean isLibraryCanBeUsedAsJavaRuntime(@Nullable Library library) {
+        if (library == null) {
+            return false;
+        }
 
-                afterSetUp.run();
-
-                if (!jdkAnnotationsArePresent(module)) {
-                    addJdkAnnotations(module);
-                }
+        for (VirtualFile root : library.getFiles(OrderRootType.CLASSES)) {
+            if (root.getName().equals(KOTLIN_RUNTIME_JAR)) {
+                return true;
             }
-        });
+        }
+
+        return false;
     }
 
-    @Nullable
-    static Library findOrCreateRuntimeLibrary(@NotNull Project project, @NotNull FindRuntimeLibraryHandler handler) {
-        final LibraryTable table = ProjectLibraryTable.getInstance(project);
-        final Library kotlinRuntime = table.getLibraryByName(LIBRARY_NAME);
-        if (kotlinRuntime != null) {
-            for (VirtualFile root : kotlinRuntime.getFiles(OrderRootType.CLASSES)) {
-                if (root.getName().equals(KOTLIN_RUNTIME_JAR)) {
-                    return kotlinRuntime;
-                }
-            }
-        }
+    //@Nullable
+    //public static Library createRuntimeLibrary(final LibraryTable table, @NotNull final String libName, FindRuntimeLibraryHandler handler) {
+    //    File runtimePath = PathUtil.getKotlinPathsForIdeaPlugin().getRuntimePath();
+    //    if (!runtimePath.exists()) {
+    //        handler.runtimePathDoesNotExist(runtimePath);
+    //        return null;
+    //    }
+    //
+    //    final File targetJar = handler.getRuntimeJarPath();
+    //    if (targetJar == null) return null;
+    //    try {
+    //        FileUtil.copy(runtimePath, targetJar);
+    //        VirtualFile jarVfs = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(targetJar);
+    //        if (jarVfs != null) {
+    //            jarVfs.refresh(false, false);
+    //        }
+    //    }
+    //    catch (IOException e) {
+    //        handler.ioExceptionOnCopyingJar(e);
+    //        return null;
+    //    }
+    //
+    //
+    //    return ApplicationManager.getApplication().runWriteAction(new Computable<Library>() {
+    //        @Override
+    //        public Library compute() {
+    //            LibraryTableBase.ModifiableModel modifiableModel = table.getModifiableModel();
+    //            final String name = getUniqueLibraryName(libName, modifiableModel);
+    //            Library library = modifiableModel.createLibrary(name);
+    //            final LibraryEx.ModifiableModelEx model = (LibraryEx.ModifiableModelEx)library.getModifiableModel();
+    //            model.addRoot(VfsUtil.getUrlForLibraryRoot(targetJar), OrderRootType.CLASSES);
+    //            model.addRoot(VfsUtil.getUrlForLibraryRoot(targetJar) + "src", OrderRootType.SOURCES);
+    //            model.commit();
+    //            modifiableModel.commit();
+    //            return library;
+    //        }
+    //    });
+    //}
 
-        File runtimePath = PathUtil.getKotlinPathsForIdeaPlugin().getRuntimePath();
-        if (!runtimePath.exists()) {
-            handler.runtimePathDoesNotExist(runtimePath);
-            return null;
-        }
-
-        final File targetJar = handler.getRuntimeJarPath();
-        if (targetJar == null) return null;
-        try {
-            FileUtil.copy(runtimePath, targetJar);
-            VirtualFile jarVfs = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(targetJar);
-            if (jarVfs != null) {
-                jarVfs.refresh(false, false);
-            }
-        }
-        catch (IOException e) {
-            handler.ioExceptionOnCopyingJar(e);
-            return null;
-        }
-
-        return ApplicationManager.getApplication().runWriteAction(new Computable<Library>() {
+    private static String getUniqueLibraryName(final String baseName, final LibraryTable.ModifiableModel model) {
+        return UniqueNameGenerator.generateUniqueName(baseName, "", "", " (", ")", new Condition<String>() {
             @Override
-            public Library compute() {
-                Library result = kotlinRuntime == null
-                                 ? table.createLibrary("KotlinRuntime")
-                                 : kotlinRuntime;
-
-                Library.ModifiableModel model = result.getModifiableModel();
-                model.addRoot(VfsUtil.getUrlForLibraryRoot(targetJar), OrderRootType.CLASSES);
-                model.addRoot(VfsUtil.getUrlForLibraryRoot(targetJar) + "src", OrderRootType.SOURCES);
-                model.commit();
-                return result;
+            public boolean value(String s) {
+                return model.getLibraryByName(s) == null;
             }
         });
     }
@@ -312,14 +293,14 @@ public class KotlinRuntimeLibraryUtil {
         return kotlinRuntimeJar;
     }
 
-    public static abstract class FindRuntimeLibraryHandler {
-        @Nullable
-        public abstract File getRuntimeJarPath();
-
-        public void runtimePathDoesNotExist(@NotNull File path) {
-        }
-
-        public void ioExceptionOnCopyingJar(@NotNull IOException e) {
-        }
-    }
+    //public static abstract class FindRuntimeLibraryHandler {
+    //    @Nullable
+    //    public abstract File getRuntimeJarPath();
+    //
+    //    public void runtimePathDoesNotExist(@NotNull File path) {
+    //    }
+    //
+    //    public void ioExceptionOnCopyingJar(@NotNull IOException e) {
+    //    }
+    //}
 }
