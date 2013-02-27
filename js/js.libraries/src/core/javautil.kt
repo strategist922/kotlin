@@ -58,7 +58,7 @@ public native abstract class AbstractList<E>(): AbstractCollection<E>(), Mutable
     override fun size(): Int = js.noImpl
 }
 
-public native open class ArrayList<E>(capacity:Int=0): AbstractList<E>() {
+public native open class ArrayList<E>(capacity: Int = 0): AbstractList<E>() {
 }
 
 // JS array is sparse, so, there is no any difference between ArrayList and LinkedList
@@ -84,7 +84,7 @@ public open class LinkedHashSet<E>(): AbstractCollection<E>(), MutableSet<E> {
 }
 
 library
-public open class HashMap<K, V>(capacity:Int=0) : MutableMap<K, V> {
+public open class HashMap<K, V>(capacity: Int = 0) : MutableMap<K, V> {
     public override fun size() : Int = js.noImpl
     public override fun isEmpty() : Boolean = js.noImpl
     public override fun get(key : Any?) : V? = js.noImpl
