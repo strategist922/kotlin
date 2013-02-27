@@ -134,8 +134,18 @@ public final class ArrayFIF extends CompositeFIF {
                     @NotNull List<JsExpression> arguments,
                     @NotNull TranslationContext context
             ) {
-                assert arguments.isEmpty();
-                return new JsArrayLiteral();
+                assert arguments.isEmpty() || arguments.size() == 1;
+
+                JsExpression result = new JsArrayLiteral();
+                if (arguments.isEmpty()) {
+                    return result;
+                }
+
+                if (arguments.get(0).hasSideEffects()) {
+                    return new JsBinaryOperation(JsBinaryOperator.COMMA, arguments.get(0), result);
+                }
+
+                return result;
             }
         });
 

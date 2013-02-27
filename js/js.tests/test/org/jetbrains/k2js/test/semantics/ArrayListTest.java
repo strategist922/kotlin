@@ -56,4 +56,12 @@ public final class ArrayListTest extends JavaClassesTest {
 
         }
     }
+
+    public void testConstructWithCapacity() throws Exception {
+        fooBoxTest();
+    }
+
+    public void testConstructWithSideEffectParam() throws Exception {
+        fooBoxTest();
+    }
 }
