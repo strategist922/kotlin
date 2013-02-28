@@ -63,7 +63,7 @@ public class JetPsiFactory {
     }
 
     //the pair contains the first and the last elements of a range
-    public static Pair<PsiElement, PsiElement> createColon(Project project) {
+    public static Pair<PsiElement, PsiElement> createColonAndWhiteSpaces(Project project) {
         JetProperty property = createProperty(project, "val x : Int");
         return Pair.create(property.findElementAt(5), property.findElementAt(7));
     }
@@ -71,6 +71,14 @@ public class JetPsiFactory {
     public static ASTNode createColonNode(Project project) {
         JetProperty property = createProperty(project, "val x: Int");
         return property.getNode().findChildByType(JetTokens.COLON);
+    }
+
+    @NotNull
+    public static PsiElement createSemicolon(Project project) {
+        JetProperty property = createProperty(project, "val x: Int;");
+        PsiElement semicolon = property.findElementAt(10);
+        assert semicolon != null;
+        return semicolon;
     }
 
     public static PsiElement createWhiteSpace(Project project) {

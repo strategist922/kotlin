@@ -83,6 +83,8 @@ public class QuickFixes {
         factories.put(NON_ABSTRACT_FUNCTION_WITH_NO_BODY, addAbstractModifierFactory);
         factories.put(NON_ABSTRACT_FUNCTION_WITH_NO_BODY, addFunctionBodyFactory);
 
+        factories.put(NON_VARARG_SPREAD, RemoveSpreadFix.createFactory());
+
         factories.put(NON_MEMBER_FUNCTION_NO_BODY, addFunctionBodyFactory);
 
         factories.put(NOTHING_TO_OVERRIDE, RemoveModifierFix.createRemoveModifierFromListOwnerFactory(OVERRIDE_KEYWORD));
@@ -131,7 +133,7 @@ public class QuickFixes {
         factories.put(USELESS_SIMPLE_IMPORT, removeImportFixFactory);
         factories.put(USELESS_HIDDEN_IMPORT, removeImportFixFactory);
 
-        factories.put(SUPERTYPE_NOT_INITIALIZED_DEFAULT, ChangeToConstructorInvocationFix.createFactory());
+        factories.put(SUPERTYPE_NOT_INITIALIZED, ChangeToConstructorInvocationFix.createFactory());
         factories.put(FUNCTION_CALL_EXPECTED, ChangeToFunctionInvocationFix.createFactory());
         
         factories.put(CANNOT_CHANGE_ACCESS_PRIVILEGE, ChangeVisibilityModifierFix.createFactory());
@@ -153,6 +155,13 @@ public class QuickFixes {
         actions.put(VAL_REASSIGNMENT, changeVariableMutabilityFix);
         actions.put(VAR_OVERRIDDEN_BY_VAL, changeVariableMutabilityFix);
 
+        RemoveValVarFromParametersFix removeValVarFromParametersFix = new RemoveValVarFromParametersFix();
+        actions.put(VAL_OR_VAR_ON_FUN_PARAMETER, removeValVarFromParametersFix);
+        actions.put(VAL_OR_VAR_ON_LOOP_PARAMETER, removeValVarFromParametersFix);
+        actions.put(VAL_OR_VAR_ON_CATCH_PARAMETER, removeValVarFromParametersFix);
+
+        factories.put(UNUSED_VARIABLE, RemoveVariableFix.createRemoveVariableFactory());
+
         actions.put(UNNECESSARY_SAFE_CALL, ReplaceCallFix.toDotCallFromSafeCall());
         actions.put(UNSAFE_CALL, ReplaceCallFix.toSafeCall());
 
@@ -164,6 +173,7 @@ public class QuickFixes {
         factories.put(PACKAGE_MEMBER_CANNOT_BE_PROTECTED, removeProtectedModifierFactory);
 
         actions.put(PUBLIC_MEMBER_SHOULD_SPECIFY_TYPE, new SpecifyTypeExplicitlyFix());
+        actions.put(AMBIGUOUS_ANONYMOUS_TYPE_INFERRED, new SpecifyTypeExplicitlyFix());
 
         factories.put(ELSE_MISPLACED_IN_WHEN, MoveWhenElseBranchFix.createFactory());
         factories.put(NO_ELSE_IN_WHEN, AddWhenElseBranchFix.createFactory());
@@ -172,8 +182,10 @@ public class QuickFixes {
         factories.put(WRONG_NUMBER_OF_TYPE_ARGUMENTS, AddStarProjectionsFix.createFactoryForJavaClass());
 
         factories.put(INACCESSIBLE_OUTER_CLASS_EXPRESSION, AddModifierFix.createFactory(INNER_KEYWORD, JetClass.class));
-        
-        factories.put(FINAL_SUPERTYPE, FinalSupertypeFix.createFactory());
+
+        JetIntentionActionFactory addOpenModifierToClassDeclarationFix = AddOpenModifierToClassDeclarationFix.createFactory();
+        factories.put(FINAL_SUPERTYPE, addOpenModifierToClassDeclarationFix);
+        factories.put(FINAL_UPPER_BOUND, addOpenModifierToClassDeclarationFix);
 
         factories.put(PARAMETER_NAME_CHANGED_ON_OVERRIDE, RenameParameterToMatchOverriddenMethodFix.createFactory());
 
@@ -181,5 +193,7 @@ public class QuickFixes {
         factories.put(ILLEGAL_ENUM_ANNOTATION, RemoveModifierFix.createRemoveModifierFromListOwnerFactory(ENUM_KEYWORD));
 
         factories.put(NOT_AN_ANNOTATION_CLASS, MakeClassAnAnnotationClassFix.createFactory());
+
+        factories.put(DANGLING_FUNCTION_LITERAL_ARGUMENT_SUSPECTED, AddSemicolonAfterFunctionCallFix.createFactory());
     }
 }
