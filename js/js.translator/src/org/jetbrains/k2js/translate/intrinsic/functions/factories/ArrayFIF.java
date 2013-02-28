@@ -31,6 +31,7 @@ import org.jetbrains.jet.lang.resolve.name.Name;
 import org.jetbrains.jet.lang.types.JetType;
 import org.jetbrains.jet.lang.types.lang.KotlinBuiltIns;
 import org.jetbrains.jet.lang.types.lang.PrimitiveType;
+import org.jetbrains.jet.plugin.JetLanguage;
 import org.jetbrains.k2js.translate.context.TranslationContext;
 import org.jetbrains.k2js.translate.intrinsic.functions.basic.BuiltInFunctionIntrinsic;
 import org.jetbrains.k2js.translate.intrinsic.functions.basic.FunctionIntrinsic;
@@ -112,7 +113,7 @@ public final class ArrayFIF extends CompositeFIF {
         FunctionIntrinsic iteratorIntrinsic = new KotlinFunctionIntrinsic("arrayIterator");
         add(pattern(ARRAYS, "iterator"), iteratorIntrinsic);
         add(pattern(ARRAYS, "<init>"), new KotlinFunctionIntrinsic("arrayFromFun"));
-        add(pattern("kotlin", "array"), ARRAY_INTRINSIC);
+        add(pattern(JetLanguage.NAME.toLowerCase() + ".array|doubleArray|floatArray|longArray|intArray|charArray|shortArray|byteArray|booleanArray"), ARRAY_INTRINSIC);
         add(new DescriptorPredicate() {
             @Override
             public boolean apply(@NotNull FunctionDescriptor descriptor) {
