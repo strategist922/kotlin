@@ -16,10 +16,13 @@
 
 package org.jetbrains.jet.plugin.framework.ui;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
 import com.intellij.ide.util.projectWizard.ProjectWizardUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.io.FileUtil;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.PathUtil;
@@ -30,24 +33,59 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 public class FileUIUtils {
     private FileUIUtils() {
     }
 
     @Nullable
-    public static File copyWithOverwriteDialog(
+    public static List<File> copyWithOverwriteDialog(
             @NotNull Component parent,
+            @NotNull String messagesTitle,
             @NotNull String destinationFolder,
-            @NotNull File file,
-            @NotNull String messagesTitle) {
+            @NotNull File... files
+    ) {
         if (!ProjectWizardUtil.createDirectoryIfNotExists("Destination folder", destinationFolder, false)) {
             Messages.showErrorDialog(String.format("Error during folder creating '%s'", destinationFolder), messagesTitle + ". Error");
             return null;
         }
-
+        
         File folder = new File(destinationFolder);
-        File targetFile = new File(folder, file.getName());
+
+        List<File> targetFiles = new ArrayList<File>(files.length);
+        for (File targetFile : files) {
+            targetFiles.add(new File(folder, targetFile.getName()));
+        }
+
+        Collection<File> existentFiles = Collections2.filter(targetFiles, new Predicate<File>() {
+            @Override
+            public boolean apply(@Nullable File file) {
+                assert file != null;
+                return file.exists();
+            }
+        });
+
+        if (!existentFiles.isEmpty()) {
+            String message = existentFiles.size() == 1 ?
+                String.format("File \"%s\" is already exist in %s.\nDo you want to overwrite it?", existentFiles.iterator().next().getName(), folder.getAbsolutePath()) :
+                String.format("Several files are already exist in %s:\n%s\nDo you want to overwrite them?", folder.getAbsolutePath(), StringUtil.join(existentFiles, "\n"));
+
+            int replaceIfExist = Messages.showYesNoDialog(
+                    null,
+                    message,
+                    messagesTitle + ". Replace File",
+                    "Overwrite",
+                    "Cancel",
+                    Messages.getWarningIcon());
+
+            if (replaceIfExist != JOptionPane.YES_OPTION) {
+                return null;
+            }
+        }
+
 
         assert folder.exists();
 

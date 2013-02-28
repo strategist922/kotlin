@@ -56,7 +56,7 @@ public class JSFrameworkSupportProvider extends FrameworkSupportInModuleProvider
 
             @Override
             public boolean isOnlyLibraryAdded() {
-                return true;
+                return false;
             }
 
             @Override
@@ -64,6 +64,8 @@ public class JSFrameworkSupportProvider extends FrameworkSupportInModuleProvider
                     @NotNull Module module,
                     @NotNull ModifiableRootModel rootModel,
                     @NotNull ModifiableModelsProvider modifiableModelsProvider) {
+
+
                 FrameworksCompatibilityUtils.suggestRemoveIncompatibleFramework(
                         rootModel,
                         new JavaRuntimeLibraryDescription(),

@@ -30,8 +30,7 @@ import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.jet.plugin.JetPluginUtil;
-import org.jetbrains.jet.plugin.framework.ui.CreateLibrarySourceDialog;
+import org.jetbrains.jet.plugin.framework.ui.CreateJavaScriptLibraryDialog;
 import org.jetbrains.jet.plugin.framework.ui.FileUIUtils;
 import org.jetbrains.jet.utils.KotlinPaths;
 import org.jetbrains.jet.utils.PathUtil;
@@ -56,7 +55,7 @@ public class JSLibraryDescription extends CustomLibraryDescription {
     @Nullable
     @Override
     public NewLibraryConfiguration createNewLibrary(@NotNull JComponent parentComponent, @Nullable VirtualFile contextDirectory) {
-        CreateLibrarySourceDialog dialog = new CreateLibrarySourceDialog(null, "Create Kotlin JavaScript Library", contextDirectory);
+        CreateJavaScriptLibraryDialog dialog = new CreateJavaScriptLibraryDialog(null, "Create Kotlin JavaScript Library", contextDirectory);
         dialog.show();
 
         if (dialog.isOK()) {
@@ -74,7 +73,7 @@ public class JSLibraryDescription extends CustomLibraryDescription {
 
             String copyIntoPath = dialog.getCopyIntoPath();
             if (copyIntoPath != null) {
-                libraryFile = FileUIUtils.copyWithOverwriteDialog(parentComponent, copyIntoPath, libraryFile, JAVA_SCRIPT_LIBRARY_CREATION);
+                libraryFile = FileUIUtils.copyWithOverwriteDialog(parentComponent, JAVA_SCRIPT_LIBRARY_CREATION, copyIntoPath, libraryFile);
                 if (libraryFile == null) {
                     return null;
                 }
