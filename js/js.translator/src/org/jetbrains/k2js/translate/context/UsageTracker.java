@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2012 JetBrains s.r.o.
+ * Copyright 2010-2013 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -104,7 +104,7 @@ public final class UsageTracker {
 
             DeclarationDescriptor containingDeclaration = descriptor.getContainingDeclaration();
             if (containingDeclaration instanceof ClassDescriptor) {
-                // skip methods like "plus" — defined in Int class
+                // skip methods like "plus" -- defined in Int class
                 if (outerClassDescriptor == null && (callableDescriptor.getExpectedThisObject() == null || isAncestor(containingDeclaration, memberDescriptor))) {
                     outerClassDescriptor = (ClassDescriptor) containingDeclaration;
                 }

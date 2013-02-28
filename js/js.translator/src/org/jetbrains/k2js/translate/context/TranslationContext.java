@@ -229,7 +229,7 @@ public class TranslationContext {
         if (usageTracker != null) {
             usageTracker.triggerUsed(descriptor);
         }
-        // ClassDescriptor — this or receiver, these aliases cannot be shared and applicable only in current context
+        // ClassDescriptor -- this or receiver, these aliases cannot be shared and applicable only in current context
         return aliasingContext.getAliasForDescriptor(descriptor, false);
     }
 

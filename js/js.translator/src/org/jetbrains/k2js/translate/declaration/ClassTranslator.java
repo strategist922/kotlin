@@ -184,7 +184,7 @@ public final class ClassTranslator extends AbstractTranslator {
             }
             else {
                 if (qualifiedReference != null) {
-                    // about "prototype" — see http://code.google.com/p/jsdoc-toolkit/wiki/TagLends
+                    // about "prototype" -- see http://code.google.com/p/jsdoc-toolkit/wiki/TagLends
                     invocationArguments.add(new JsDocComment("lends", new JsNameRef("prototype", qualifiedReference)));
                 }
                 invocationArguments.add(new JsObjectLiteral(properties, true));
